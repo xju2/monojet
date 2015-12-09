@@ -1,0 +1,231 @@
+from configManager import configMgr
+from ROOT import kBlack,kWhite,kGray,kRed,kPink,kMagenta,kViolet,kBlue,kAzure,kCyan,kTeal,kGreen,kSpring,kYellow,kOrange
+from configWriter import fitConfig,Measurement,Channel,Sample
+from systematic import Systematic
+
+import math
+from array import array
+import os
+
+# Setup for ATLAS plotting
+from ROOT import gROOT
+from ROOT import TH1F
+import ROOT
+#gROOT.LoadMacro("./macros/AtlasStyle.C")
+#ROOT.SetAtlasStyle()
+
+
+class SampleEvents:
+
+    def __init__(self):
+        self.cut = 250  # subject to change
+        self.regions = ["SR","WMUNU","WENU","ZMM","CRZee"]
+        self.dic_all = {}
+        self.colors = {}
+        self.sys_all = {}
+        self.bkg_samples = []
+        self.sys_common = []
+        self.signal_sample = None 
+
+    def read_hist(self, filename):
+        """return yields of the sample in different regions"""
+        file = ROOT.TFile.Open(filename)
+        dic = {}
+        for region in self.regions:
+            histname = "met_"+region+"_"+str(self.cut)
+            print histname
+            hist = file.Get(histname)
+            print type(hist)
+            tmp_array = [0, 0]
+            errorArray = array('d', tmp_array)
+            all = hist.IntegralAndError(1, 50, errorArray)
+            if math.fabs(all) < 1e-4: # fill phantom data
+                dic[region] = (1e-4, 1e-4)
+            else:
+                dic[region] = (all, errorArray[0])
+        return dic
+
+    def read_all(self, input_list):
+        self.dic_all.clear() 
+        with open(input_list) as f:
+            for line in f:
+                name, file_path, color = line.split()
+                # self.dic_all[name] = self.read_hist(file_path)
+                self.dic_all[name] = 10.
+                self.colors[name] = int(color)
+
+    def get_yield(self, input_list, met_cut):
+        self.cut = met_cut
+        self.read_all(input_list)
+
+    def print_yield(self):
+        out = ""
+        for region in self.regions:
+            out += "\t" + region
+        out += "\n"
+        for sample_name in self.dic_all.keys():
+            out += sample_name
+            yields_dic = self.dic_all[sample_name]
+            for region in self.regions:
+                nevts, nerror = yields_dic[region]
+                out += "\t" + str(round(nevts, 3))
+            out += "\n"
+        print out
+                
+    def get_sys(self):
+        for sample_name in self.dic_all.keys():
+            self.sys_all[sample_name] = Systematic(sample_name+"_stats",\
+                                                    configMgr.weights, 1.2, 0.8,
+                                                   "user", "userOverallSys")
+    
+    def create_common_sys(self):
+        sys_list_file = "data/monojet_sys.list"
+        with open(sys_list_file, 'r') as f:
+            for line in f:
+                sys_name = line[:-1]
+                systematic = Systematic(sys_name, "_NoSys",
+                                        "_up","_down","tree","histoSys")
+                self.sys_common.append(systematic)
+
+    def create_samples(self):
+        for sample_name in self.dic_all.keys():
+            sample = Sample(sample_name, self.colors[sample_name])
+            sample.setStatConfig(True)
+
+            #yields_dic = self.dic_all[sample_name]
+            #for region in self.regions:
+            #    nevts, nerror = yields_dic[region]
+            #    sample.buildHisto([nevts], region, "cuts", 0.5)
+            #    sample.buildStatErrors([nerror], region, "cuts")
+
+            sample.setNormByTheory()
+            if "signal" not in sample_name:
+                sample.setNormRegions([("WMUNU", "met"), 
+                                       ("WENU", "met"),
+                                       ("ZMM", "met")])
+                self.bkg_samples.append(sample)
+            else:
+                sample.setNormFactor("mu", 1., 0., 100.)
+                self.signal_sample = sample
+            # set normalization factors that will propagate 
+            # from CR to SR
+            self.set_norm_factor(sample)
+            sample.setFileList([in_file_path])
+
+            ## add systematic??
+            #sample.addSystematic(self.sys_all[sample_name])
+            for systematic in self.sys_common:
+                sample.addSystematic(systematic)
+
+
+    def create_data(self):
+        self.data_sample = Sample("Data", kBlack)
+        self.data_sample.setData()
+        self.data_sample.setFileList([in_file_path])
+        #ndata = 2000
+        #for region in self.regions:
+        #    self.data_sample.buildHisto([ndata], region, "met", 0.5)
+
+    def set_norm_factor(self, sample):
+        sample_name = sample.name
+        if sample_name == "Znunu":
+            sample.setNormFactor("mu_wmn", 1., 0., 5.)
+        elif sample_name == "Wenu":
+            sample.setNormFactor("mu_wen", 1., 0., 5.)
+        elif sample_name == "Wmunu" or sample_name == "Wtaunu":
+            sample.setNormFactor("mu_wmn", 1., 0., 5.)
+        elif sample_name == "Zee" or sample_name == "Zmumu" or sample_name == "Ztautau": 
+            sample.setNormFactor("mu_zll", 1., 0., 5.)
+        else:
+            pass
+
+
+class MonoJet:
+
+    def __init__(self, input_list):
+        print "Hello World"
+        self.input = input_list
+        self.cut = 250
+        self.useStat = False
+        configMgr.analysisName = "MonoJet_"+str(self.cut)+"GeV"
+        configMgr.outputFileName = "results/%s_Output.root"%configMgr.analysisName
+
+    def process(self, cut):
+        self.cut = cut
+        yield_mgr = SampleEvents()
+        # get yields
+        yield_mgr.get_yield(self.input, self.cut)
+        #yield_mgr.print_yield()
+        # get systematics
+        yield_mgr.get_sys()
+        yield_mgr.create_common_sys()
+        # create MC samples
+        yield_mgr.create_samples()
+        # create data
+        yield_mgr.create_data()
+
+        # define unnecessary cuts
+        configMgr.cutsDict["SR"] = "1."
+        configMgr.cutsDict["WMUNU"] = "1."
+        configMgr.cutsDict["WENU"] = "1."
+        configMgr.cutsDict["ZMM"] = "1."
+
+        # define background only
+        bkt = configMgr.addFitConfig("BkgOnly")
+        if self.useStat:
+            bkt.statErrThreshold = 0.05
+        else:
+            bkt.statErrThreshold = None
+        bkt_samples = yield_mgr.bkg_samples[:]
+        bkt_samples.append(yield_mgr.data_sample)
+        bkt.addSamples(bkt_samples)
+
+        meas = bkt.addMeasurement(name="Normal", lumi=1.0, lumiErr=0.039)
+        meas.addPOI("mu")
+        #meas.addParamSetting("Lumi", True, 1)
+
+        chan_cr_wmu = bkt.addChannel("met", ["WMUNU"], 1, 0.5, 1.5)
+        chan_cr_wen = bkt.addChannel("met", ["WENU"], 1, 0.5, 1.5)
+        chan_cr_zmm = bkt.addChannel("met", ["ZMM"], 1, 0.5, 1.5)
+        bkt.setBkgConstrainChannels([chan_cr_wmu, chan_cr_wen, chan_cr_zmm])
+        if myFitType == FitType.Discovery:
+            discovery = configMgr.addFitConfigClone(bkt, "Discovery")
+            chan = discovery.addChannel("met", ["SR"], 1, 0.5, 1.5)
+            chan.addDiscoverySamples(["SR"], [1.0], [0.], [100.], [kMagenta])
+            discovery.setSignalChannels([chan])
+       
+        if myFitType == FitType.Exclusion:
+            exclusion = configMgr.addFitConfigClone(bkt, "Exclusion")
+            exclusion.addSamples(yield_mgr.signal_sample)
+            exclusion.setSignalSample(yield_mgr.signal_sample)
+            ch_sr = exclusion.addChannel("met", ["SR"], 1, 0.5, 1.5)
+            exclusion.setSignalChannels([ch_sr])
+
+        if configMgr.executeHistFactory:
+            pass
+            #if os.path.isfile("data/%s.root"%configMgr.analysisName):
+                #os.remove("data/%s.root"%configMgr.analysisName) 
+
+
+monojet = MonoJet("hist_fitter.config")
+# Setting the parameters of the hypothesis test
+configMgr.calculatorType = 2 # 2=asymptotic calculator, 0=frequentist calculator
+configMgr.writeXML = True
+#configMgr.doExclusion = True # True=exclusion, False=discovery
+# configMgr.blindSR = False 
+# configMgr.blindCR = False 
+# configMgr.blindVR = False 
+# configMgr.nTOYs = -1
+# configMgr.lumiUnits = 1.0 # 1=fb-1, 1000=pb-1
+# configMgr.muValGen = 0.0 # mu_sig used for toy generation
+# configMgr.useAsimovSet = False # Use the Asimov dataset
+# configMgr.doHypoTest = False 
+
+configMgr.useCacheToTreeFallback = False # enable fallback to trees
+configMgr.useHistBackupCacheFile = True # enable use of an alternate data file
+#in_file_path="/afs/cern.ch/user/x/xju/work/monoJet/process/get_minitree/testarea/"
+#in_file_path+="all_input.root"
+in_file_path = "data/"+configMgr.analysisName+".root"
+configMgr.histBackupCacheFile = "data/MonoJet_250GeV_template.root"
+
+monojet.process(250)

@@ -1,0 +1,37 @@
+#2015-08-17
+utils for making plots
+svn co svn+ssh://svn.cern.ch/reps/atlas-xju/Python tools
+#2015-08-08
+MyXAODTools moved to github
+git clone https://github.com/xju2/xaodtools.git MyXAODTools
+git checkout tags/0.1
+rcSetup SUSY,2.3.21
+rc checkout_pkg atlasoff/PhysicsAnalysis/SUSYPhys/SUSYTools/tags/SUSYTools-00-06-17-01
+rc checkout SUSYTools/doc/packages.txt
+rc find_packages
+rc clean 
+rc compile
+#2015-07-14
+Need to checkout MyXAODTools
+svn co svn+ssh://svn.cern.ch/reps/atlas-xju/MyXAODTools/trunk MyXAODTools
+#2015-07-09
+setupATLAS
+rcSetup Base,2.3.18
+rc checkout_pkg atlasoff/PhysicsAnalysis/SUSYPhys/SUSYTools/tags/SUSYTools-00-06-15
+rc checkout SUSYTools/doc/packages.txt
+
+#2015-07-06
+setupATLAS
+rcSetup Base,2.3.17
+rc checkout_pkg atlasoff/PhysicsAnalysis/SUSYPhys/SUSYTools/tags/SUSYTools-00-06-13
+all packages are up to date
+
+# 2015-06-25
+# Instructions:
+setupATLAS
+rcSetup Base,2.3.15
+rc checkout_pkg atlasoff/PhysicsAnalysis/SUSYPhys/SUSYTools/tags/SUSYTools-00-06-12
+rc checkout SUSYTools/doc/packages.txt
+rc find_packages
+rc clean
+rc compile
