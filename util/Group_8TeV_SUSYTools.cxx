@@ -91,7 +91,7 @@ int main( int argc, char* argv[] )
 
     if (argc > 1 && string(argv[1]) == "help")
     {
-        cout << argv[0] << " toberun.txt number_evts isData=0 isAtlfast=0 noSys=1 doSmear=0 doPhoton=0" << endl;
+        cout << argv[0] << " toberun.txt number_evts isData=0 isAtlfast=0 noSys=1 doSmear=0 doPhoton=0 debug=0" << endl;
         exit(0);
     }
     // The application's name:
@@ -156,6 +156,7 @@ int main( int argc, char* argv[] )
     bool no_sys = true;
     bool do_smear = false;
     bool do_photon = false;
+    bool do_debug = false;
 
     for (int i= 3 ; i<argc ; i++) {
         const char* key = strtok(argv[i],"=") ;
@@ -166,6 +167,7 @@ int main( int argc, char* argv[] )
         if (strcmp(key,"noSys")==0) no_sys = (bool)atoi(val);
         if (strcmp(key,"doSmear")==0) do_smear = (bool)atoi(val);
         if (strcmp(key,"doPhoton")==0) do_photon = (bool)atoi(val);
+        if (strcmp(key,"debug")==0) do_debug = (bool)atoi(val);
     }
 
     Info( APP_NAME, "Number of events to process: %i", static_cast<int>( entries ) );
@@ -188,20 +190,11 @@ int main( int argc, char* argv[] )
     // Create SUSYTools
     ST::SUSYObjDef_xAOD objTool("SUSYObjDef_xAOD");
     std::cout << " ABOUT TO INITIALIZE SUSYTOOLS " << std::endl;
-    // objTool.msg().setLevel(MSG::VERBOSE);
-    // objTool.msg().setLevel(MSG::INFO);
-    objTool.msg().setLevel(MSG::ERROR);
+    if(do_debug) objTool.msg().setLevel(MSG::VERBOSE);
+    else objTool.msg().setLevel(MSG::ERROR);
 
     // Configure the SUSYObjDef instance
     ST::SettingDataSource data_source = isData ? ST::Data : (isAtlfast ? ST::AtlfastII : ST::FullSim);
-    CHECK(objTool.setProperty("DataSource", data_source));
-    CHECK(objTool.setProperty("EleIsoWP", "LooseTrackOnly")); // Gradient
-    CHECK(objTool.setProperty("MuIsoWP", "LooseTrackOnly")); // Gradient
-    // CHECK(objTool.setProperty("BtagCut_OR", -1000)); // 
-    CHECK(objTool.setProperty("RequireIsoSignal", false)); // 
-    // use the first set of JES NPs
-    CHECK(objTool.setProperty("JESNuisanceParameterSet", 1)); 
-    CHECK(objTool.setProperty("PhotonId", "Medium")); 
 
     /* config the Pileup reweighting tools */
     string maindir(getenv("ROOTCOREBIN"));
@@ -213,7 +206,7 @@ int main( int argc, char* argv[] )
     vector<string> prw_lumicalc;
     prw_lumicalc.push_back(maindir+"/data/MyXAODTools/ilumicalc_histograms_None_276262-284484.root");
     CHECK( objTool.setProperty("PRWLumiCalcFiles", prw_lumicalc) );
-
+    CHECK( objTool.setProperty("ConfigFile", Form("%s/data/MonoJet/monojet.conf", maindir.c_str())) );
 
     if( objTool.initialize() != StatusCode::SUCCESS){
         Error( APP_NAME, "Cannot intialize SUSYObjDef_xAOD..." );
