@@ -1,5 +1,5 @@
-#ifndef WiscAnalysis_LINKDEF_H
-#define WiscAnalysis_LINKDEF_H
+#ifndef MONOJET_LINKDEF_H
+#define MONOJET_LINKDEF_H
 
 #include <MonoJet/MyCuts.h>
 #include <MonoJet/OutputTreeMan.h>

@@ -201,12 +201,13 @@ int main( int argc, char* argv[] )
     vector<string> prw_conf;
     prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_25ns_monojet_bkg_mc.root");
     prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_monojet_signals.root");
+    CHECK( objTool.setProperty("DataSource", data_source) );
     CHECK( objTool.setProperty("PRWConfigFiles", prw_conf) );
 
     vector<string> prw_lumicalc;
     prw_lumicalc.push_back(maindir+"/data/MyXAODTools/ilumicalc_histograms_None_276262-284484.root");
     CHECK( objTool.setProperty("PRWLumiCalcFiles", prw_lumicalc) );
-    CHECK( objTool.setProperty("ConfigFile", Form("%s/data/MonoJet/monojet.conf", maindir.c_str())) );
+    CHECK( objTool.setProperty("ConfigFile", maindir+"/data/MonoJet/monojet.conf") );
 
     if( objTool.initialize() != StatusCode::SUCCESS){
         Error( APP_NAME, "Cannot intialize SUSYObjDef_xAOD..." );
@@ -444,7 +445,7 @@ int main( int argc, char* argv[] )
                         ) );
             xAOD::MissingETContainer::const_iterator met_it = met->find("Final");
 
-            if (met_it == met->end() )//  || met_it_muon == met->end() )
+            if (met_it == met->end() )
             {
                 Error( APP_NAME, "No RefFinal inside MET container" );
             }
@@ -453,6 +454,9 @@ int main( int argc, char* argv[] )
             output.MET_phi = (*met_it)->phi();
             output.MET_et  = (*met_it)->met();
             output.MET_sumet_ = (*met_it)->sumet();
+            xAOD::MissingETContainer::const_iterator met_muon_it = met->find("Muons");
+            output.MET_sumet_noMuon_ = output.MET_sumet_ - (*met_muon_it)->sumet();
+            output.MET_et_soft_ = (*(met->find("PVSoftTrk")))->met();
 
             /* ********
              * normal MET 
@@ -735,11 +739,11 @@ void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
     smeared_info.met_ =(float) (*met_it)->met();
     float min_dphi_jetMET  = 9999;
     int n_good_jets = 0;
-    for(auto jet: *jets){
+    for(auto jet: *jets) {
         float dphi = (float) fabs(TVector2::Phi_mpi_pi((*met_it)->phi() - jet->phi()));
         if(dphi < min_dphi_jetMET) min_dphi_jetMET = dphi;
-        bool is_signal = objTool.IsSignalJet((*jet), 30e3, 2.8, 0.64);
-        if(is_signal) n_good_jets ++;
+        // bool is_signal = objTool.IsSignalJet((*jet), 30e3, 2.8, 0.64);
+        if(jet->pt() > 30E3 && fabs(jet->eta()) < 2.8) n_good_jets ++;
     }
     smeared_info.min_jets_met_ = min_dphi_jetMET;
     smeared_info.n_good_jets_ = n_good_jets;

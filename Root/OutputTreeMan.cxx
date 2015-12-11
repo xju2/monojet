@@ -214,6 +214,8 @@ void OutputTreeMan::AddBranches2Tree(TTree& MyTree)
     MyTree.Branch("MET_et", &MET_et, "MET_et/D");
     MyTree.Branch("MET_ecorr", &MET_et_noEE, "MET_ecorr/D");
     MyTree.Branch("MET_sumet", &MET_sumet_, "MET_sumet/D");
+    MyTree.Branch("MET_sumet_noMuon", &MET_sumet_noMuon_, "MET_sumet_noMuon/D");
+    MyTree.Branch("MET_et_soft", &MET_et_soft_, "MET_et_soft/D");
 
     MyTree.Branch("MET_mu_etx", &MET_mu_etx_,     "MET_mu_etx/D");
     MyTree.Branch("MET_mu_ety", &MET_mu_ety_,     "MET_mu_ety/D");
