@@ -1,7 +1,7 @@
 #!/bin/bash
 samples="Wenu ttbar Zee Diboson Wtaunu Znunu Wmunu Zmumu Ztautau Dijets"
 #samples="Dijets"
-script="${MonoJetCodeDir}/StackProcess/bsubs/submit_make_hists.py"
+script="${MonoJetCodeDir}/MonoJet/bsubs/submit_make_hists.py"
 
 weight_dir=$1
 
@@ -21,5 +21,5 @@ do
 done
 
 #submit for data
-#python ${script} data.list data --isData --noDphiCut
+python ${script} data.list data --isData --noDphiCut
 

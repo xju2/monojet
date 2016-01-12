@@ -59,6 +59,9 @@ void Regions::SetCuts(float jet_pt_cut, float met_cut, int njet_cut)
         cout <<"Set Cuts: MET("<< met_cut_ << "), njet(" << njet_cut_ << "), jet_pt(" << jet_pt_cut << ")." <<endl;
     }
 }
+void Regions::UseVRCuts( bool use_vr ){
+   use_VR_ = use_vr; 
+}
 
 void Regions::clear(){
     n_good_mu_iso = -1;
@@ -81,9 +84,13 @@ bool Regions::PassCommonCuts(double met_value, double dphi_jet_met)
         if(verbose_) cout << "No jets" << endl;
         return false;
     }
+
     if(met_value <= met_cut_) {
         if(verbose_) cout << p_->MET_et << ", Failed MET(Common)"  << endl;
         return false;
+        if(use_VR_ && met_value >= 250E3){
+            return false;
+        }
     }
 
     if(!nodphi_ && dphi_jet_met <= 0.4 ){ 

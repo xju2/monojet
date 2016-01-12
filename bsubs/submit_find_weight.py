@@ -17,7 +17,7 @@ badjobs = []
 for job in  totalJobs:
     input_name = workdir+"/"+job+".list"
     outname = job+'_weight.txt'
-    run_cmd = monojetDir+"/StackProcess/bsubs/run_find_weight.sh "+\
+    run_cmd = monojetDir+"/MonoJet/bsubs/run_find_weight.sh "+\
             input_name+ " "+outdir+" "+outname
     print run_cmd
     #-G u_zp -q 8nh for atlas sources

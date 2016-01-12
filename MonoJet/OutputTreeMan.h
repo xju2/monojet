@@ -137,6 +137,8 @@ public:
     double MET_phi;
     double MET_et;
     double MET_sumet_;
+    double MET_sumet_noMuon_;
+    double MET_et_soft_;
 
     double MET_mu_etx_;
     double MET_mu_ety_;

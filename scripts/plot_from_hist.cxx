@@ -13,7 +13,7 @@
 
 using namespace std;
 // const float weight = 1037.23;
-const float weight = 3342. - 141.70 - 243.00;
+const float weight = 3210;
 // const float weight = 173.7;
 //const float weight = 523.3 + 85.;
 const string base_dir = "combined/";

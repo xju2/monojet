@@ -100,35 +100,15 @@ int main( int argc, char** argv)
     physics* _p = new physics(fc);
     TFile* output = new TFile("output.root","recreate");
     vector<int>* met_cuts =  new vector<int>();
-    met_cuts->push_back(100);
-    met_cuts->push_back(2500);
-    met_cuts->push_back(250);
-    met_cuts->push_back(400);
-    met_cuts->push_back(600);
-    /* MET > 100, jet_pt > 100; dphi(jets, MET) > dphi_cut*/
-    met_cuts->push_back(10); // SR with MET,jet_pt > 250
-    met_cuts->push_back(20); // Different dphi cut
-    met_cuts->push_back(30); // QCD CR: reversed deltaR
 
-    /* ABCD region A(11), B(12), C(13), D(14)
-     * */
-    met_cuts->push_back(11); 
-    met_cuts->push_back(12); 
-    met_cuts->push_back(13); 
-    met_cuts->push_back(14); 
-    /* MET/Pt > 0.5, 
-     * */ 
-    met_cuts->push_back(15); 
-    /* 15 + dphi(jets,MET) > 0.4 */
-    met_cuts->push_back(16);
+    met_cuts->push_back(10); // VR
+    met_cuts->push_back(11); // QCD
+    met_cuts->push_back(12); // no-dphi
 
-    /* MET/Pt > 0.3,
-     * ABCD region A(21), B(22), C(23), D(24)
-     * */
-    met_cuts->push_back(21); 
-    met_cuts->push_back(22); 
-    met_cuts->push_back(23); 
-    met_cuts->push_back(24); 
+    met_cuts->push_back(20); // SR (dphi>0.4)
+    met_cuts->push_back(21); // QCD dphi<0.4
+    met_cuts->push_back(22); // all dphi
+
 
     int total_cuts = (int) met_cuts->size();
 
@@ -143,11 +123,9 @@ int main( int argc, char** argv)
     int met_nbins = 16;
     TH1F* MET_template = new TH1F("MET_template","E_{T}^{miss};E_{T}^{miss} [GeV];Events", met_nbins, met_xbins);
     TH1F* njet_template = new TH1F("njet_template","njet;N_{jets};Events",11,-0.5,10.5);
-    TH1F* dphi_template = new TH1F("dphi_template", "#Delta#phi;#Delta#phi;Events", 16, 0, 3.2);
-    
+    TH1F* dphi_template = new TH1F("dphi_template", "#Delta#phi;#Delta#phi;Events", 64, 0, 3.2);
     TH1F* ljet_pt_template = new TH1F("ljet_pt_template","ljet_pt;P^{t}_{jet} [GeV];Events", met_nbins,met_xbins);
-    TH1F* ratio_met_ljet_pt = new TH1F("ratio_met_ljet_pt", 
-            "ratio_met_jetpt;E_{T}^{miss}/P_{jet}^{t}", 40, 0, 4);
+    TH1F* ratio_met_ljet_pt = new TH1F("ratio_met_ljet_pt", "ratio_met_jetpt;E_{T}^{miss}/P_{jet}^{t}", 40, 0, 4);
 
     map<string, vector<TH1F*>* > hists_map;
     hists_map["n_jets"] = new vector<TH1F*>();
@@ -187,7 +165,7 @@ int main( int argc, char** argv)
 
     _p->fChain->GetEntry(0);
     Regions* region = new Regions(_p);
-    // region->SetNoTrigger();
+
     if(debug) region->Verbose();
     if(no_dphi_cut) region->SetNoDphiCut();
     if(is_data) region->SetDataFlag();
@@ -229,19 +207,20 @@ int main( int argc, char** argv)
         for(int j=0; j < total_cuts; j++){
             int cut_index = met_cuts->at(j);
             float met_cut = cut_index * 1e3;
-            float jet_pt_cut = (float)met_cut;
+            float jet_pt_cut = (float) met_cut;
             
-            if( cut_index == 2500){
-                met_cut = 100e3;
+            if( cut_index >= 10 && cut_index < 20) {
+                met_cut = 150e3;
                 jet_pt_cut = 250e3;
+                region->UseVRCuts();
             }
-            if( (cut_index >= 10 && cut_index <= 50))
-            {
+            if( cut_index >= 20 && cut_index < 30) {
                 jet_pt_cut = met_cut = 250e3;
+                region->UseVRCuts(false);
             } 
             region->SetCuts(jet_pt_cut, met_cut, jet_cut);
 
-            //Different regions have to orthognal!
+            //Different regions are orthognal!
             int type = -1;
             if(region->IsSR()){ type = 0;
             } else if (region->IsCRWen()) { 
@@ -262,54 +241,23 @@ int main( int argc, char** argv)
             double ljet_pt = (_p->jet_p4->at(0)).Pt()/1e3;
             double MET = type==4? _p->MET_ecorr/1e3: _p->MET_et/1e3;
 
-            bool in_region_A = dphi_et_pt < dphi_ep_cut &&  min_dphi < dphi_cut;
-            bool in_region_B = dphi_et_pt > dphi_ep_cut &&  min_dphi < dphi_cut;
-            bool in_region_C = dphi_et_pt > dphi_ep_cut &&  min_dphi > dphi_cut;
-            bool in_region_D = dphi_et_pt < dphi_ep_cut &&  min_dphi > dphi_cut;
             bool pass_ratio = MET/ljet_pt > met_pt_ratio_cut;
             bool pass_dphi = min_dphi > dphi_cut;
 
-            if (cut_index == 10) {
-                if(!pass_dphi) continue;
-            } else if (cut_index == 20) {
-                if(min_dphi <= 0.5) continue;
-            } else if (cut_index == 30) {
+            if (cut_index == 11 || cut_index == 21) {
                 if(pass_dphi) continue;
-            } else if (cut_index == 11) {
-                if(!in_region_A) continue;
-            } else if (cut_index == 12) {
-                if(!in_region_B) continue;
-            } else if (cut_index == 13) {
-                if(!in_region_C) continue;
-            } else if (cut_index == 14) {
-                if(!in_region_D) continue;
-            } else if (cut_index == 15) {
-                if(!pass_ratio) continue;
-            } else if (cut_index == 16) {
-                if(!pass_ratio || !pass_dphi) continue;
-            } else if (cut_index == 21) {
-                if(!pass_ratio || !in_region_A) continue;
-            } else if (cut_index == 22) {
-                if(!pass_ratio || !in_region_B) continue;
-            } else if (cut_index == 23) {
-                if(!pass_ratio || !in_region_C) continue;
-            } else if (cut_index == 24) {
-                if(!pass_ratio || !in_region_D) continue;
-            } else {}
+            } else if(cut_index == 12 || cut_index == 22){
+                ;
+            } else if(!pass_dphi) { 
+                continue; 
+            } else {;}
 
             hists_map["n_jets"]->at(real_index) ->Fill(_p->n_good_jet, weight);
             hists_map["ljet_pt"]->at(real_index) ->Fill(ljet_pt, weight);
             hists_map["met"]->at(real_index) ->Fill(MET, weight);
-            // cout<< _p->EventNumber<< " dphi:  " << min_dphi << " type:" << type << " " << _p->min_dphi_jetMET<< endl;
             hists_map["dphi"]->at(real_index) ->Fill(min_dphi, weight);
-            
             hists_map["ratio_met_pt"]->at(real_index)->Fill(MET/ljet_pt, weight);
-            /*
-            float dphi_et_pt = fabs(TVector2::Phi_mpi_pi(_p->MET_phi - cst_phi));
-            // float dphi_et_pt = fabs(TVector2::Phi_mpi_pi(_p->MET_phi - _p->track_sum_phi->at(0)));
-            */
             hists_map["dphi_ep"]->at(real_index)->Fill(dphi_et_pt, weight);
-
             hist_2d->at(real_index)->Fill(min_dphi, dphi_et_pt, weight);
         }
     }

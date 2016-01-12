@@ -16,6 +16,8 @@ class Regions{
                 float met_cut, int njet_cut);
         ~Regions();
         void SetCuts(float jet_pt_cut, float met_cut, int njet_cut);
+        void UseVRCuts( bool use_vr = true);
+
         void SetNtuple(physics* p);
         void clear();
         RegionType GetRegionType();
@@ -52,6 +54,7 @@ class Regions{
         bool nodphi_;
         bool is_data_;
         bool trigger_;
+        bool use_VR_;
 
         float jet_pt_cut_;
         float met_cut_;

@@ -80,7 +80,7 @@ badjobs = []
 for job in  range(totalJobs):
     inputlist = workdir+"/Lists/"+prefix_name+"_n"+str(job)+'.list'
     outname = myFileList+"_"+str(job)+".root"
-    run_cmd = zz4lDir+"/StackProcess/bsubs/run_make_hists.sh "+\
+    run_cmd = zz4lDir+"/MonoJet/bsubs/run_make_hists.sh "+\
             inputlist+ " "+outdir+" "+outname+' "'+otheroptions+'"'
     #print run_cmd
     #-G u_zp -q 8nh for atlas sources

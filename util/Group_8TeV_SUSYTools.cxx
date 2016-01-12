@@ -737,6 +737,7 @@ void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
 
     smeared_info.leading_jet_pt_ = (float)jets->at(0)->p4().Pt();
     smeared_info.met_ =(float) (*met_it)->met();
+    smeared_info.sum_et_ =(float) (*met_it)->sumet();
     float min_dphi_jetMET  = 9999;
     int n_good_jets = 0;
     for(auto jet: *jets) {
