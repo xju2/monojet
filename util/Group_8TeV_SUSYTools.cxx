@@ -334,14 +334,14 @@ int main( int argc, char* argv[] )
             }
             output.data_weight_ = 1.0;
 
-            /* List triggers
+           
             if(entry == 0){
                 cout << "Dumping trigger info" << endl;
                 auto chainGroup = objTool.GetTrigChainGroup("HLT_.*");
                 for (auto& trig : chainGroup->getListOfTriggers())
                     cout << " " << trig << endl;
             } 
-            **/
+            
             
             if(! cp_tools->PassGRL(*ei)) continue;
             if(! cp_tools->PassEventCleaning(*ei)) continue;

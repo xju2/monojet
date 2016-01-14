@@ -2,7 +2,10 @@
 
 import ROOT
 import AtlasStyle
+
 import os
+import sys
+import threading
 import math
 from array import array 
 
@@ -14,8 +17,15 @@ ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libCxx
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libAthContainers.so")
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libMonoJet.so")
 
-triggers = ["HLT_j100",  "HLT_j110",  "HLT_j150",  "HLT_j175",  "HLT_j200",
-            "HLT_j260",  "HLT_j300",  "HLT_j320",  "HLT_j360"]
+triggers = [#"HLT_j100",  
+            "HLT_j110",  
+            "HLT_j150",  #"HLT_j175",  
+            "HLT_j200",
+            "HLT_j260",  #"HLT_j300",  
+            "HLT_j320",  "HLT_j360", "HLT_j400",
+            #"HLT_j380", "HLT_j400", "HLT_j420", "HLT_j440", "HLT_j460"
+           ]
+trigger_plateau = [130, 170, 220, 280, 350, 390, 430]
 # unit: ipb
 lumi_list = [979.768*1E-3, 1441.75*1E-3,  5357.85*1E-3, 10698.3*1E-3,
               19701.4*1E-3, 68386.7*1E-3, 135.87, 191.304, 3316.68] 
@@ -218,7 +228,7 @@ class MiniTree:
                     ps = float(two_part[1].split()[1])
                     #self.add_name_to_dictionary(self.ps_dic, (trigger, lb, ps))
                     self.add_tup_to_dictionary(self.ps_dic, (trigger, lb, ps))
-        print self.ps_dic
+        #print self.ps_dic
     
     @staticmethod
     def add_name_to_dictionary(d, tup):
@@ -244,43 +254,68 @@ class MiniTree:
             print "I don't know: ", trigger
         if debug:
                 print trigger," ",lb_in," weight: ",result
+        #if result > 1: result /= (55/1.5)
         return result
 
-    def change_file(self, file_name, out_name):
+    def find_right_trigger(self, chain):
+        pt = chain.jet_p4[0].Pt()/1E3
+        if chain.trig_j400 and pt > 430:
+            return "HLT_j400"
+        elif chain.trig_j360 and pt > 390 and pt <= 430:
+            return "HLT_j360"
+        elif chain.trig_j320 and pt > 350 and pt <= 390:
+            return "HLT_j320"
+        elif chain.trig_j260 and pt > 280 and pt <= 350:
+            return "HLT_j260"
+        elif chain.trig_j200 and pt > 220 and pt <= 280:
+            return "HLT_j200"
+        elif chain.trig_j150 and pt > 170 and pt <= 220:
+            return "HLT_j150"
+        elif chain.trig_j110 and pt > 130 and pt <= 170:
+            return "HLT_j110"
+        else:
+            return None
+        
+    def change_file(self, file_name, start_n):
         chain = ROOT.loader(file_name, "physics")
         nentries = chain.GetEntries()
-
+        
+        out_name = "jj_"+str(start_n)+".root"
         outfile = ROOT.TFile.Open(out_name, "recreate")
         #outtree = chain.CloneTree(0)
         outtree = ROOT.TTree("smeared", "smeared")
-        #ps_weights = [array('f', [0])]*len(triggers)
-        ps_weights = []
-        for i,trigger in enumerate(triggers):
-            ps_weights.append( array('f', [0]) )
-            outtree.Branch("w_"+trigger, ps_weights[i], "w_"+trigger+"/F")
         met = array('f', [0])
         jetpt = array('f', [0])
         njets = array('i', [0])
         dphi = array('f', [0])
         dphiEP = array('f', [0])
         rmet_pt = array('f', [0])
+        run_number = array('i', [0])
+        event_number = array('i', [0])
+        lb = array('i', [0])
         outtree.Branch('met_et', met, 'met_et/F')
         outtree.Branch('njets', njets, 'njets/I')
         outtree.Branch('leading_jet_pt', jetpt, 'leading_jet_pt/F')
         outtree.Branch('min_dphi', dphi, 'min_dphi/F')
         outtree.Branch("dphi_ep", dphiEP, 'dphi_ep/F')
         outtree.Branch('rmet_pt', rmet_pt, 'rmet_pt/F')
-        if debug:
-            print ps_weights
-            print met
+        outtree.Branch('run', run_number, 'run/I')
+        outtree.Branch('event', event_number, 'event/I')
+        outtree.Branch('lb', lb, 'lb/I')
+        weight = array('f', [0])
+        outtree.Branch('weight', weight, 'weight/F')
 
-        for ientry in range(nentries):
-        #for ientry in range(100):
+        for ientry in range(1000):
+            ientry = start_n + ientry
             if chain.LoadTree(ientry) < 0:
                 break
             chain.GetEntry(ientry)
             #select the seed events
             met_sig =  chain.MET_et/1E3/math.sqrt(chain.MET_sumet/1E3)
+            run_number[0] = chain.RunNumber
+            event_number[0] = chain.EventNumber
+            lb[0] = chain.lumiblock
+            jet_pt_origin = chain.jet_p4[0].Pt()
             if met_sig < 0.7 and chain.n_base_el ==0 and chain.n_base_mu ==0:
                 for data in chain.pseudoData:
                     met[0] = data.met_/1E3
@@ -289,18 +324,20 @@ class MiniTree:
                     dphi[0] = data.min_jets_met_
                     dphiEP[0] = data.dphi_EP_
                     rmet_pt[0] = data.met_/data.leading_jet_pt_
-                    for i, trigger in enumerate(triggers):
-                        ps_weight = self.find_weight(trigger, chain.lumiblock)
-                        ps_weights[i][0] = ps_weight
+                    trigger = self.find_right_trigger(chain)
+                    if trigger:
+                        weight[0] = self.find_weight(trigger, chain.lumiblock)
+                    else:
+                        weight[0] = 0.
                     outtree.Fill()
-
+        outfile.cd()
         outtree.Write()
         outfile.Close()
 
-def test_minitree():
+def test_minitree(start_n, data_list, ps_file_name):
     mini = MiniTree()
-    mini.load_ps("284484_ps.txt")
-    mini.change_file('../testarea/data_smeared.list', 'test.root')
+    mini.load_ps(ps_file_name)
+    mini.change_file(data_list, start_n)
 
 if __name__ == "__main__":
     file_name = ""
@@ -308,4 +345,22 @@ if __name__ == "__main__":
     #jetsmear.compare_all_smeared("smeared_hist.root")
     #jetsmear.process('data_smeared.list')
     #jetsmear.process('reduced_ntup.root')
-    test_minitree()
+    threads = []
+    ps_file_name = "284484_ps.txt"
+    data_list = "../testarea/data_smeared.list"
+    if len(sys.argv) > 2:
+        ps_file_name = sys.argv[1]
+        data_list = sys.argv[2]
+    
+    print ps_file_name,data_list
+    ch = ROOT.loader(data_list, "physics")
+    nentries = ch.GetEntries()
+    if nentries < 1:
+        sys.exit(1)
+    total_jobs = nentries/1000+1
+    print "total entries: ",nentries," jobs: ",total_jobs
+    for i_thread in range(total_jobs):
+        start_n = i_thread*1000
+        t = threading.Thread(target=test_minitree, args=(start_n, data_list, ps_file_name))
+        threads.append(t)
+        t.start()
