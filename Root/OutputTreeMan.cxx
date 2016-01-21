@@ -35,6 +35,7 @@ OutputTreeMan::OutputTreeMan(bool with_sys)
         {"HLT_mu40", false},
         {"HLT_mu50", false},
         {"HLT_g140_loose", false},
+        {"HLT_j60", false},
         {"HLT_j100", false},
         {"HLT_j110", false},
         {"HLT_j150", false},

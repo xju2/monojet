@@ -45,7 +45,9 @@ public:
         f_data = TFile::Open(Form("%sdata_combined.root",base_dir.c_str()), "READ");
         f_data2 = TFile::Open(Form("%sdata_combined.root",base_dir.c_str()), "READ");
         // f_data2 = TFile::Open(Form("%sdata_no_leading.root",base_dir.c_str()), "READ");
-        f_signal = TFile::Open(Form("%ssignal_combined.root",base_dir.c_str()), "READ");
+        //
+        // f_signal = TFile::Open(Form("%ssignal_combined.root",base_dir.c_str()), "READ");
+        f_signal = NULL;
         
     }
     
@@ -59,7 +61,8 @@ public:
         h_dijets = (T*) f_dijets->Get(hist_name);
         h_data = (T*) f_data->Get(hist_name);
         h_data2 = (T*) f_data2->Get(hist_name);
-        h_signal = (T*) f_signal->Get(hist_name);
+        if(f_signal) h_signal = (T*) f_signal->Get(hist_name);
+        cout <<"got histograms"<<endl;
 
         // weight
         Option_t* option = "";
@@ -73,8 +76,8 @@ public:
         h_top->Scale(weight*add_weight, option);
         h_vv->Scale(weight*add_weight, option);
         // h_dijets->Scale(weight*7.848206e+00);
-        h_dijets->Scale(weight*add_weight, option);
-        h_signal->Scale(weight, option);
+        h_dijets->Scale(weight*add_weight*2.087575e-04*1.073483e+00*6.313839e-01, option);
+        if(h_signal) h_signal->Scale(weight, option);
         h_data->Sumw2();
         h_data->Scale(1., option);
 
@@ -86,6 +89,7 @@ public:
 
         h_bkg= (T*) h_bkg_no_dijets->Clone("h_bkg");
         h_bkg->Add(h_dijets);
+        cout << " histograms loaded" << endl;
     }
     
     void do_plot(const char* hist_name)
@@ -98,7 +102,7 @@ public:
         tokenize_histname(hist_name, var_name, met_cut, region_name);
 
         TCanvas* canvas = new TCanvas("canvas", "canvas", 600, 600);
-        SetAtlasStyle(canvas);
+        SetAtlasStyleCanvas(canvas);
         // decoration
         h_znunu->SetLineColor(206);
         h_wlnu ->SetLineColor(64);
@@ -106,7 +110,10 @@ public:
         h_vv ->SetLineColor(28);
         h_dijets ->SetLineColor(29);
         h_top->SetLineColor(209);
-        h_signal->SetLineColor(2);
+        if(h_signal){ 
+            h_signal->SetLineColor(2);
+            h_signal->SetFillColor(2);
+        }
 
         //****
         h_znunu->SetFillColor(206);
@@ -115,7 +122,6 @@ public:
         h_vv ->SetFillColor(28);
         h_dijets ->SetFillColor(29);
         h_top->SetFillColor(209);
-        h_signal->SetFillColor(2);
         //****/
         h_data->SetMarkerStyle(20);
         h_data->SetMarkerSize(1.2);
@@ -135,7 +141,7 @@ public:
 
         // print the information
         printf("data: %.f\n", h_data->Integral());
-        printf("signal: %.2f\n", h_signal->Integral());
+        if(h_signal) printf("signal: %.2f\n", h_signal->Integral());
         printf("Bkg: %.2f\n", h_bkg->Integral());
         printf("Znunu: %.2f\n", h_znunu->Integral());
         printf("Wjets: %.2f\n", h_wlnu->Integral());
@@ -152,7 +158,7 @@ public:
             printf("Low: %d, Hi: %d\n", low_bin, hi_bin);
             printf("Efficiency (dphi_met_mpt):\nn");
             printf("data: %.2f\n", h_data->Integral(low_bin, hi_bin)/h_data->Integral());
-            printf("signal: %.2f\n", h_signal->Integral(low_bin, hi_bin)/h_signal->Integral());
+            if(h_signal) printf("signal: %.2f\n", h_signal->Integral(low_bin, hi_bin)/h_signal->Integral());
             printf("Znunu: %.2f\n", h_znunu->Integral(low_bin, hi_bin)/h_znunu->Integral());
             printf("Wjets: %.2f\n", h_wlnu->Integral(low_bin, hi_bin)/h_wlnu->Integral());
             printf("Zjets: %.2f\n", h_zll->Integral(low_bin, hi_bin)/h_zll->Integral());
@@ -164,7 +170,7 @@ public:
 
         printf("--------------------\n");
         printf("data: %.f\n", h_data->GetEntries());
-        printf("signal: %.2f\n", h_signal->GetEntries());
+        if(h_signal) printf("signal: %.2f\n", h_signal->GetEntries());
         printf("Znunu: %.2f\n", h_znunu->GetEntries());
         printf("Wjets: %.2f\n", h_wlnu->GetEntries());
         printf("Zjets: %.2f\n", h_zll->GetEntries());
@@ -245,13 +251,14 @@ public:
         legend->AddEntry(h_zll, "Z #rightarrow #it{l}#it{l}", "fl");
         legend->AddEntry(h_vv, "Diboson", "fl");
         legend->AddEntry(h_top, "t#bar{t} + single top", "fl");
-        legend->AddEntry(h_dijets, "Dijets", "fl");
+        legend->AddEntry(h_dijets, "Multi-jet", "fl");
         legend->Draw();
         float x_off_title = 0.22;
         // myText(x_off_title, 0.85, 1, "#bf{#it{ATLAS}} Internal");
         myText(x_off_title, 0.85, 1, "#bf{#it{ATLAS}} Work In Progress");
         myText(x_off_title-0.04, 0.80, 1, Form("#sqrt{s} = 13 TeV: #scale[0.55]{#int}Ldt = %.1f fb^{-1}", weight/1e3));
-        myText(x_off_title, 0.75, 1, Form("%s, E_{T}^{miss}> %s GeV", region_name.c_str(), met_cut.c_str()));
+        // myText(x_off_title, 0.75, 1, Form("%s, E_{T}^{miss}> %s GeV", region_name.c_str(), met_cut.c_str()));
+        myText(x_off_title, 0.75, 1, Form("QCD, E_{T}^{miss}> %s GeV", met_cut.c_str()));
 
         TString outeps_name(Form("eps/%s", hist_name));
         if(use_log) outeps_name += "_log";
@@ -321,7 +328,7 @@ public:
         #endif 
 
         TCanvas* canvas = new TCanvas("canvas", "canvas", 600, 600);
-        SetAtlasStyle(canvas);
+        SetAtlasStyleCanvas(canvas);
 
         h_data->GetXaxis()->SetTitle("#Delta#phi(jets, E_{T}^{miss}) [rad]");
         h_data->GetYaxis()->SetTitle("#Delta#phi(E_{T}^{miss}, #vec{p}_{T}^{miss}) [rad]");
@@ -627,7 +634,7 @@ public:
     T* h_data2;
     T* h_bkg_no_dijets;
     T* h_bkg;
-    T* h_signal;
+    T* h_signal = NULL;
     TFile* f_znunu;
     TFile* f_wlnu;
     TFile* f_zll;
@@ -636,7 +643,7 @@ public:
     TFile* f_dijets;
     TFile* f_data;
     TFile* f_data2;
-    TFile* f_signal;
+    TFile* f_signal = NULL;
 
 };
 
@@ -660,7 +667,7 @@ void go_plot(int cut_tag, const char* region)
     hist_mgr_1d->do_plot(Form("met_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("ljetPt_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("dphi_%s_%d", region, cut_tag));
-    hist_mgr_1d->do_plot(Form("dphiEP_%s_%d", region, cut_tag));
+    // hist_mgr_1d->do_plot(Form("dphiEP_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("njets_%s_%d", region, cut_tag));
     // hist_mgr_1d->do_plot(Form("met_SR_%d", cut_tag));
     // hist_mgr_1d->do_plot(Form("met_ZEE_%d", cut_tag));

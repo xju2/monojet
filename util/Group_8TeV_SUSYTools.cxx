@@ -225,21 +225,25 @@ int main( int argc, char* argv[] )
     TH2F* bJetResponse = NULL;
     const std::string smearJet = "smearjet";
     if (do_smear) {
-        unsigned int test = 1000;
+        unsigned int test = 5000;
 
         m_mySmearingTool = new SUSY::JetMCSmearingTool("MySmearingTool");
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
         m_mySmearingTool->initialize();
 
-        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2411.root");
+        // std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2411.root");
+        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_WEJES_p1886.root");
         TFile* lightJetFile = TFile::Open(input_light_jet.c_str(), "read");
-        lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2411");
+        //lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2411");
+        lightJetResponse = (TH2F*)lightJetFile->Get("responseWEJES_p1886");
         lightJetResponse->SetDirectory(0);
         lightJetFile->Close();
 
-        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2411.root");
+        // std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2411.root");
+        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_WEJES_p1886.root");
         TFile* bJetFile = TFile::Open(input_bjet.c_str(), "read");
-        bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2411");
+        // bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2411");
+        bJetResponse = (TH2F*)bJetFile->Get("responseWEJES_p1886");
         bJetResponse->SetDirectory(0);
         bJetFile->Close();
 
