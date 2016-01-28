@@ -10,14 +10,14 @@ if [ "x${ROOTCOREBIN}" == "x" ]; then
     shift $#
     source ${MonoJetCodeDir}/rcSetup.sh 
 else
-. /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc481_x86_64_slc6/slc6/x86_64-slc6-gcc48-opt/setup.sh /afs/cern.ch/sw/lcg/contrib
+. /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc493_x86_64_slc6/slc6/gcc49/setup.sh /afs/cern.ch/sw/lcg/contrib
 fi
 which root
 which gcc
 #cat $inputlist
 echo "${ROOTCOREBIN}/bin/x86_64-slc6-gcc48-opt/CountSingleProcess $inputlist ${otherOpt}"
 echo "other options: ${otherOpt}"
-${ROOTCOREBIN}/bin/x86_64-slc6-gcc48-opt/CountSingleProcess "$inputlist" ${otherOpt}
+${ROOTCOREBIN}/bin/x86_64-slc6-gcc49-opt/CountSingleProcess "$inputlist" ${otherOpt}
 
 if [ ! -d ${basedir} ];then
     mkdir -vp ${basedir}

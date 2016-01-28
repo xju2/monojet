@@ -8,7 +8,9 @@ if not os.path.exists(path_cmb):
     os.mkdir(path_cmb)
     
 samples= ["Wenu", "ttbar", "Zee", "Diboson", "Wtaunu", "Znunu",
-          "Wmunu", "Zmumu", "Ztautau", "Dijets", "signal"]
+          "Wmunu", "Zmumu", "Ztautau", "Dijets", 
+          #"signal"
+         ]
 #samples = ["Wenu"]
 bkg_lists = []
 for sample in samples:

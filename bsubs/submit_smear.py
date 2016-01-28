@@ -13,6 +13,9 @@ usage="usage: "+sys.argv[0]+" input.list outDir"
 parser = OptionParser(usage, version="0.1")
 parser.add_option("--filesPerJob", default=1, dest="files_per_job", 
                   help="files per job")
+parser.add_option('-n', default=1000,
+                  dest="events_per_thread", 
+                  help="events per thread")
 options,args = parser.parse_args()
 
 
@@ -22,6 +25,7 @@ outdir=workdir
 
 #config the job
 maxFile = options.files_per_job
+nevents = options.events_per_thread
 
 if len(args) > 1:
     myFileList = args[0]
@@ -33,6 +37,7 @@ else:
 print "max file(s) per job: ",maxFile
 print "file list: ",myFileList
 print "out put directory: ",outdirname
+print "Number of events per thread: ",nevents
 
 prefix_name = myFileList.split('.')[0]
 
@@ -49,11 +54,12 @@ totalJobs = int(output.split(':')[5])
 goodjobs = []
 badjobs = []
 for job in  range(totalJobs):
+#for job in [49,8,9,100,109,110,116,118,119,19,20,22,27,28,32,33,46,48,51,53,54,55,59,63,65,68,70,73,77,79,81,85,88,90,98]:
     inputlist = workdir+"/Lists/"+prefix_name+"_n"+str(job)+'.list'
     run_number = get_run_number(inputlist)
     outname = myFileList+"_"+str(job)+".root"
     run_cmd = zz4lDir+"/MonoJet/bsubs/run_smear.sh "+\
-            outdir+" "+inputlist+" "+run_number+" "+outname
+            outdir+" "+inputlist+" "+run_number+" "+outname+" "+str(nevents)
     #print run_cmd
     #-G u_zp -q 8nh for atlas sources
     #-G ATLASWISC_GEN -q wisc for wisconsin sources

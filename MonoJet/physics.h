@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////
 // This class has been automatically generated on
-// Thu Nov 12 01:19:12 2015 by ROOT version 6.02/12
+// Thu Jan 28 14:38:07 2016 by ROOT version 6.04/12
 // from TTree physics/physics
-// found on file: reduced_ntup.root
+// found on file: root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju/monojet/minitrees/mc15b_v1/Ztautau/user.xju.7497891._000011.reduced_ntup.root
 //////////////////////////////////////////////////////////
 
 #ifndef physics_h
@@ -11,11 +11,12 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
-#include <TLorentzVector.h>
 
 // Header file for the classes stored in the TTree if any.
 #include <vector>
+#include "MonoJet/SmearedInfo.h"
 
+#include <TLorentzVector.h>
 using namespace std;
 class physics {
 public :
@@ -23,6 +24,13 @@ public :
    Int_t           fCurrent; //!current Tree number in a TChain
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
+   static const Int_t kMaxpseudoData = 1;
+   static const Int_t kMaxpseudoData_leading_jet_pt = 1;
+   static const Int_t kMaxpseudoData_met = 1;
+   static const Int_t kMaxpseudoData_sum_et = 1;
+   static const Int_t kMaxpseudoData_min_jets_met = 1;
+   static const Int_t kMaxpseudoData_dphi_EP = 1;
+   static const Int_t kMaxpseudoData_n_good_jets = 1;
 
    // Declaration of leaf types
    Int_t           RunNumber;
@@ -30,6 +38,8 @@ public :
    Int_t           mc_channel_number;
    Float_t         MCWeight;
    Float_t         PUWeight;
+   Float_t         corrected_mu;
+   Float_t         data_weight;
    Float_t         actualIPC;
    Float_t         averageIPC;
    UInt_t          bcid;
@@ -61,6 +71,7 @@ public :
    Bool_t          trig_j420;
    Bool_t          trig_j440;
    Bool_t          trig_j460;
+   Bool_t          trig_j60;
    Bool_t          trig_mu20_iloose_L1MU15;
    Bool_t          trig_mu26_imedium;
    Bool_t          trig_mu40;
@@ -94,8 +105,6 @@ public :
    vector<float>   *el_zp;
    vector<float>   *el_charge;
    vector<float>   *el_sf;
-   vector<float>   *el_sf_up;
-   vector<float>   *el_sf_down;
    Int_t           n_base_mu;
    Int_t           n_good_mu;
    Double_t        mt_munu;
@@ -108,18 +117,14 @@ public :
    vector<float>   *mu_zp;
    vector<float>   *mu_charge;
    vector<float>   *mu_sf;
-   vector<float>   *mu_stat_up;
-   vector<float>   *mu_stat_down;
-   vector<float>   *mu_sys_up;
-   vector<float>   *mu_sys_down;
-   vector<float>   *mu_trigger_up;
-   vector<float>   *mu_trigger_down;
    Double_t        MET_etx;
    Double_t        MET_ety;
    Double_t        MET_phi;
    Double_t        MET_et;
    Double_t        MET_ecorr;
    Double_t        MET_sumet;
+   Double_t        MET_sumet_noMuon;
+   Double_t        MET_et_soft;
    Double_t        MET_mu_etx;
    Double_t        MET_mu_ety;
    Double_t        MET_mu_sumet;
@@ -146,6 +151,8 @@ public :
    Bool_t          flag_mu_veto;
    Bool_t          flag_trk_veto;
    Bool_t          flag_4thjet_veto;
+   Bool_t          has_badMuon;
+   Bool_t          has_cosmicMuon;
    vector<float>   *track_sum_pt;
    vector<int>     *track_n;
    vector<float>   *track_sum_px;
@@ -178,6 +185,14 @@ public :
    vector<int>     *jet_fracSamplingMaxIndex;
    vector<bool>    *jet_isBadTight;
    vector<float>   *jet_timing;
+   // vector<SmearedInfo> * pseduoData;
+   Int_t           pseudoData_;
+   Float_t         pseudoData_leading_jet_pt_[kMaxpseudoData];   //[pseudoData_]
+   Float_t         pseudoData_met_[kMaxpseudoData];   //[pseudoData_]
+   Float_t         pseudoData_sum_et_[kMaxpseudoData];   //[pseudoData_]
+   Float_t         pseudoData_min_jets_met_[kMaxpseudoData];   //[pseudoData_]
+   Float_t         pseudoData_dphi_EP_[kMaxpseudoData];   //[pseudoData_]
+   Int_t           pseudoData_n_good_jets_[kMaxpseudoData];   //[pseudoData_]
 
    // List of branches
    TBranch        *b_RunNumber;   //!
@@ -185,6 +200,8 @@ public :
    TBranch        *b_mc_channel_number;   //!
    TBranch        *b_MCWeight;   //!
    TBranch        *b_PUWeight;   //!
+   TBranch        *b_corrected_mu;   //!
+   TBranch        *b_data_weight;   //!
    TBranch        *b_actualIPC;   //!
    TBranch        *b_averageIPC;   //!
    TBranch        *b_bcid;   //!
@@ -216,6 +233,7 @@ public :
    TBranch        *b_trig_j420;   //!
    TBranch        *b_trig_j440;   //!
    TBranch        *b_trig_j460;   //!
+   TBranch        *b_trig_j60;   //!
    TBranch        *b_trig_mu20_iloose_L1MU15;   //!
    TBranch        *b_trig_mu26_imedium;   //!
    TBranch        *b_trig_mu40;   //!
@@ -249,8 +267,6 @@ public :
    TBranch        *b_el_zp;   //!
    TBranch        *b_el_charge;   //!
    TBranch        *b_el_sf;   //!
-   TBranch        *b_el_sf_up;   //!
-   TBranch        *b_el_sf_down;   //!
    TBranch        *b_n_base_mu;   //!
    TBranch        *b_n_good_mu;   //!
    TBranch        *b_mt_munu;   //!
@@ -263,18 +279,14 @@ public :
    TBranch        *b_mu_zp;   //!
    TBranch        *b_mu_charge;   //!
    TBranch        *b_mu_sf;   //!
-   TBranch        *b_mu_stat_up;   //!
-   TBranch        *b_mu_stat_down;   //!
-   TBranch        *b_mu_sys_up;   //!
-   TBranch        *b_mu_sys_down;   //!
-   TBranch        *b_mu_trigger_up;   //!
-   TBranch        *b_mu_trigger_down;   //!
    TBranch        *b_MET_etx;   //!
    TBranch        *b_MET_ety;   //!
    TBranch        *b_MET_phi;   //!
    TBranch        *b_MET_et;   //!
    TBranch        *b_MET_ecorr;   //!
    TBranch        *b_MET_sumet;   //!
+   TBranch        *b_MET_sumet_noMuon;   //!
+   TBranch        *b_MET_et_soft;   //!
    TBranch        *b_MET_mu_etx;   //!
    TBranch        *b_MET_mu_ety;   //!
    TBranch        *b_MET_mu_sumet;   //!
@@ -301,6 +313,8 @@ public :
    TBranch        *b_flag_mu_veto;   //!
    TBranch        *b_flag_trk_veto;   //!
    TBranch        *b_flag_4thjet_veto;   //!
+   TBranch        *b_has_badMuon;   //!
+   TBranch        *b_has_cosmicMuon;   //!
    TBranch        *b_track_sum_pt;   //!
    TBranch        *b_track_n;   //!
    TBranch        *b_track_sum_px;   //!
@@ -333,6 +347,13 @@ public :
    TBranch        *b_jet_fracSamplingMaxIndex;   //!
    TBranch        *b_jet_isBadTight;   //!
    TBranch        *b_jet_timing;   //!
+   TBranch        *b_pseudoData_;   //!
+   TBranch        *b_pseudoData_leading_jet_pt_;   //!
+   TBranch        *b_pseudoData_met_;   //!
+   TBranch        *b_pseudoData_sum_et_;   //!
+   TBranch        *b_pseudoData_min_jets_met_;   //!
+   TBranch        *b_pseudoData_dphi_EP_;   //!
+   TBranch        *b_pseudoData_n_good_jets_;   //!
 
    physics(TTree *tree=0);
    virtual ~physics();
@@ -353,9 +374,9 @@ physics::physics(TTree *tree) : fChain(0)
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("reduced_ntup.root");
+      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju/monojet/minitrees/mc15b_v1/Ztautau/user.xju.7497891._000011.reduced_ntup.root");
       if (!f || !f->IsOpen()) {
-         f = new TFile("reduced_ntup.root");
+         f = new TFile("root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju/monojet/minitrees/mc15b_v1/Ztautau/user.xju.7497891._000011.reduced_ntup.root");
       }
       f->GetObject("physics",tree);
 
@@ -413,8 +434,6 @@ void physics::Init(TTree *tree)
    el_zp = 0;
    el_charge = 0;
    el_sf = 0;
-   el_sf_up = 0;
-   el_sf_down = 0;
    mu_p4 = 0;
    mu_is_good = 0;
    mu_iso_trackonly = 0;
@@ -423,12 +442,6 @@ void physics::Init(TTree *tree)
    mu_zp = 0;
    mu_charge = 0;
    mu_sf = 0;
-   mu_stat_up = 0;
-   mu_stat_down = 0;
-   mu_sys_up = 0;
-   mu_sys_down = 0;
-   mu_trigger_up = 0;
-   mu_trigger_down = 0;
    track_sum_pt = 0;
    track_n = 0;
    track_sum_px = 0;
@@ -471,6 +484,8 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("mc_channel_number", &mc_channel_number, &b_mc_channel_number);
    fChain->SetBranchAddress("MCWeight", &MCWeight, &b_MCWeight);
    fChain->SetBranchAddress("PUWeight", &PUWeight, &b_PUWeight);
+   fChain->SetBranchAddress("corrected_mu", &corrected_mu, &b_corrected_mu);
+   fChain->SetBranchAddress("data_weight", &data_weight, &b_data_weight);
    fChain->SetBranchAddress("actualIPC", &actualIPC, &b_actualIPC);
    fChain->SetBranchAddress("averageIPC", &averageIPC, &b_averageIPC);
    fChain->SetBranchAddress("bcid", &bcid, &b_bcid);
@@ -502,6 +517,7 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("trig_j420", &trig_j420, &b_trig_j420);
    fChain->SetBranchAddress("trig_j440", &trig_j440, &b_trig_j440);
    fChain->SetBranchAddress("trig_j460", &trig_j460, &b_trig_j460);
+   fChain->SetBranchAddress("trig_j60", &trig_j60, &b_trig_j60);
    fChain->SetBranchAddress("trig_mu20_iloose_L1MU15", &trig_mu20_iloose_L1MU15, &b_trig_mu20_iloose_L1MU15);
    fChain->SetBranchAddress("trig_mu26_imedium", &trig_mu26_imedium, &b_trig_mu26_imedium);
    fChain->SetBranchAddress("trig_mu40", &trig_mu40, &b_trig_mu40);
@@ -535,8 +551,6 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("el_zp", &el_zp, &b_el_zp);
    fChain->SetBranchAddress("el_charge", &el_charge, &b_el_charge);
    fChain->SetBranchAddress("el_sf", &el_sf, &b_el_sf);
-   fChain->SetBranchAddress("el_sf_up", &el_sf_up, &b_el_sf_up);
-   fChain->SetBranchAddress("el_sf_down", &el_sf_down, &b_el_sf_down);
    fChain->SetBranchAddress("n_base_mu", &n_base_mu, &b_n_base_mu);
    fChain->SetBranchAddress("n_good_mu", &n_good_mu, &b_n_good_mu);
    fChain->SetBranchAddress("mt_munu", &mt_munu, &b_mt_munu);
@@ -549,18 +563,14 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("mu_zp", &mu_zp, &b_mu_zp);
    fChain->SetBranchAddress("mu_charge", &mu_charge, &b_mu_charge);
    fChain->SetBranchAddress("mu_sf", &mu_sf, &b_mu_sf);
-   fChain->SetBranchAddress("mu_stat_up", &mu_stat_up, &b_mu_stat_up);
-   fChain->SetBranchAddress("mu_stat_down", &mu_stat_down, &b_mu_stat_down);
-   fChain->SetBranchAddress("mu_sys_up", &mu_sys_up, &b_mu_sys_up);
-   fChain->SetBranchAddress("mu_sys_down", &mu_sys_down, &b_mu_sys_down);
-   fChain->SetBranchAddress("mu_trigger_up", &mu_trigger_up, &b_mu_trigger_up);
-   fChain->SetBranchAddress("mu_trigger_down", &mu_trigger_down, &b_mu_trigger_down);
    fChain->SetBranchAddress("MET_etx", &MET_etx, &b_MET_etx);
    fChain->SetBranchAddress("MET_ety", &MET_ety, &b_MET_ety);
    fChain->SetBranchAddress("MET_phi", &MET_phi, &b_MET_phi);
    fChain->SetBranchAddress("MET_et", &MET_et, &b_MET_et);
    fChain->SetBranchAddress("MET_ecorr", &MET_ecorr, &b_MET_ecorr);
    fChain->SetBranchAddress("MET_sumet", &MET_sumet, &b_MET_sumet);
+   fChain->SetBranchAddress("MET_sumet_noMuon", &MET_sumet_noMuon, &b_MET_sumet_noMuon);
+   fChain->SetBranchAddress("MET_et_soft", &MET_et_soft, &b_MET_et_soft);
    fChain->SetBranchAddress("MET_mu_etx", &MET_mu_etx, &b_MET_mu_etx);
    fChain->SetBranchAddress("MET_mu_ety", &MET_mu_ety, &b_MET_mu_ety);
    fChain->SetBranchAddress("MET_mu_sumet", &MET_mu_sumet, &b_MET_mu_sumet);
@@ -587,6 +597,8 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("flag_mu_veto", &flag_mu_veto, &b_flag_mu_veto);
    fChain->SetBranchAddress("flag_trk_veto", &flag_trk_veto, &b_flag_trk_veto);
    fChain->SetBranchAddress("flag_4thjet_veto", &flag_4thjet_veto, &b_flag_4thjet_veto);
+   fChain->SetBranchAddress("has_badMuon", &has_badMuon, &b_has_badMuon);
+   fChain->SetBranchAddress("has_cosmicMuon", &has_cosmicMuon, &b_has_cosmicMuon);
    fChain->SetBranchAddress("track_sum_pt", &track_sum_pt, &b_track_sum_pt);
    fChain->SetBranchAddress("track_n", &track_n, &b_track_n);
    fChain->SetBranchAddress("track_sum_px", &track_sum_px, &b_track_sum_px);
@@ -619,6 +631,13 @@ void physics::Init(TTree *tree)
    fChain->SetBranchAddress("jet_fracSamplingMaxIndex", &jet_fracSamplingMaxIndex, &b_jet_fracSamplingMaxIndex);
    fChain->SetBranchAddress("jet_isBadTight", &jet_isBadTight, &b_jet_isBadTight);
    fChain->SetBranchAddress("jet_timing", &jet_timing, &b_jet_timing);
+   fChain->SetBranchAddress("pseudoData", &pseudoData_, &b_pseudoData_);
+   fChain->SetBranchAddress("pseudoData.leading_jet_pt_", &pseudoData_leading_jet_pt_, &b_pseudoData_leading_jet_pt_);
+   fChain->SetBranchAddress("pseudoData.met_", &pseudoData_met_, &b_pseudoData_met_);
+   fChain->SetBranchAddress("pseudoData.sum_et_", &pseudoData_sum_et_, &b_pseudoData_sum_et_);
+   fChain->SetBranchAddress("pseudoData.min_jets_met_", &pseudoData_min_jets_met_, &b_pseudoData_min_jets_met_);
+   fChain->SetBranchAddress("pseudoData.dphi_EP_", &pseudoData_dphi_EP_, &b_pseudoData_dphi_EP_);
+   fChain->SetBranchAddress("pseudoData.n_good_jets_", &pseudoData_n_good_jets_, &b_pseudoData_n_good_jets_);
    Notify();
 }
 

@@ -77,12 +77,13 @@ static SG::AuxElement::Decorator<char> dec_bjet("bjet");
 static SG::AuxElement::Decorator<char> dec_cosmic("cosmic");
 static SG::AuxElement::Decorator<double> dec_effscalefact("effscalefact");
 static SG::AuxElement::Decorator<char> dec_isol("isol");
+static SG::AuxElement::Decorator<char> dec_tightBad("tightBad");
 
 bool descend_on_pt(xAOD::IParticle* p1, xAOD::IParticle* p2){
     return p1->pt() > p2->pt();
 }
 
-void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
+bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
         xAOD::MuonContainer* muons, xAOD::ElectronContainer* electrons,
         SmearedInfo& smeared_info);
 int main( int argc, char* argv[] ) 
@@ -199,8 +200,8 @@ int main( int argc, char* argv[] )
     /* config the Pileup reweighting tools */
     string maindir(getenv("ROOTCOREBIN"));
     vector<string> prw_conf;
-    prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_25ns_monojet_bkg_mc.root");
-    prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_monojet_signals.root");
+    prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_mc15b_monojet_bkg.root");
+    // prw_conf.push_back(maindir+"/data/MyXAODTools/merged_prw_monojet_signals.root");
     CHECK( objTool.setProperty("DataSource", data_source) );
     CHECK( objTool.setProperty("PRWConfigFiles", prw_conf) );
 
@@ -225,25 +226,30 @@ int main( int argc, char* argv[] )
     TH2F* bJetResponse = NULL;
     const std::string smearJet = "smearjet";
     if (do_smear) {
-        unsigned int test = 5000;
+        unsigned int test = 2000;
 
         m_mySmearingTool = new SUSY::JetMCSmearingTool("MySmearingTool");
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
         m_mySmearingTool->initialize();
-
-        // std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2411.root");
-        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_WEJES_p1886.root");
+        
+        bool do_p2411 = false;
+        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2411.root");
+        if(!do_p2411){
+            input_light_jet = string(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_WEJES_p1886.root");
+        }
         TFile* lightJetFile = TFile::Open(input_light_jet.c_str(), "read");
-        //lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2411");
-        lightJetResponse = (TH2F*)lightJetFile->Get("responseWEJES_p1886");
+        if(do_p2411) lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2411");
+        else lightJetResponse = (TH2F*)lightJetFile->Get("responseWEJES_p1886");
         lightJetResponse->SetDirectory(0);
         lightJetFile->Close();
 
-        // std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2411.root");
-        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_WEJES_p1886.root");
+        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2411.root");
+        if(!do_p2411){
+            input_bjet = string(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_WEJES_p1886.root");
+        }
         TFile* bJetFile = TFile::Open(input_bjet.c_str(), "read");
-        // bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2411");
-        bJetResponse = (TH2F*)bJetFile->Get("responseWEJES_p1886");
+        if(do_p2411) bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2411");
+        else bJetResponse = (TH2F*)bJetFile->Get("responseWEJES_p1886");
         bJetResponse->SetDirectory(0);
         bJetFile->Close();
 
@@ -625,21 +631,27 @@ int main( int argc, char* argv[] )
                     jet_itr != jets_copy->end(); jet_itr++)
             {
                 xAOD::Jet* thisJet = (*jet_itr); 
-                if (thisJet->pt() > 20000 && fabs(thisJet->eta()) < 2.5) 
+                if (dec_baseline(**jet_itr) && dec_passOR(**jet_itr)){
                     thisJet->auxdata<char>(smearJet) = true;
+                }
 
                 bool is_signal = dec_signal(**jet_itr);
                 if(!is_signal || !dec_passOR(**jet_itr) ) continue;
 
-                output.n_good_jet ++;
                 double dphi = fabs(TVector2::Phi_mpi_pi(output.MET_phi - (*jet_itr)->phi()));
                 dec_dphi_MET(**jet_itr) = dphi;
                 if( dec_bjet(**jet_itr)) output.n_jet_btagged += 1;
 
                 jet_br->Fill(**jet_itr);
                 output.FillJet(**jet_itr);
+                dec_tightBad(**jet_itr) = jet_br->jet_isBadTight_->at(output.n_good_jet);
+                output.n_good_jet ++;
             }
-            if (output.n_good_jet < 1 || output.jet_p4_.at(0).Pt()/1e3 < 100)
+            if (output.n_good_jet < 1 || 
+                    output.jet_p4_.at(0).Pt()/1e3 < 100 ||
+                    jet_br->jet_isBadTight_->at(0) != 1 ||
+                    fabs(output.jet_p4_.at(0).Eta()) >= 2.4
+                    )
             {
                 store.clear();
                 continue;
@@ -650,9 +662,10 @@ int main( int argc, char* argv[] )
                 for (auto& SmearedEvent : smrMc){
                     xAOD::JetContainer* theJetContainer =  SmearedEvent->jetContainer;
                     SmearedInfo smeared;
-                    get_smeared_info(objTool, theJetContainer, 
-                            muons_copy, electrons_copy, smeared);
-                    smeared_data->push_back(smeared);
+                    if (get_smeared_info(objTool, theJetContainer, 
+                            muons_copy, electrons_copy, smeared)){
+                        smeared_data->push_back(smeared);
+                    }
                 }
             }
 
@@ -720,10 +733,18 @@ int main( int argc, char* argv[] )
     Info( APP_NAME, "Successfully finished analysis; Exitting..." );
     return 1;
 }
-void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
+bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
         xAOD::MuonContainer* muons, xAOD::ElectronContainer* electrons,
         SmearedInfo& smeared_info)
 {
+    sort(jets->begin(), jets->end(), descend_on_pt);
+    smeared_info.leading_jet_pt_ = (float)jets->at(0)->p4().Pt();
+    smeared_info.leading_jet_eta_ = (float)jets->at(0)->p4().Eta();
+    if(smeared_info.leading_jet_pt_ < 100E3 || 
+            fabs(smeared_info.leading_jet_eta_) >= 2.4 ||
+            dec_tightBad(*(jets->at(0))) != 1 ||
+            jets->at(0)->auxdata< char >("smearjet") == false
+    ) return false;
     auto* met = new xAOD::MissingETContainer;
     auto* metAux = new xAOD::MissingETAuxContainer;
     met->setStore(metAux);
@@ -739,16 +760,21 @@ void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
                 );
     xAOD::MissingETContainer::const_iterator met_it = met->find("Final");
 
-    smeared_info.leading_jet_pt_ = (float)jets->at(0)->p4().Pt();
+    if (jets->size() > 1) {
+        smeared_info.sub_leading_jet_pt_ = (float)jets->at(1)->p4().Pt();
+        smeared_info.sub_leading_jet_eta_ = (float)jets->at(1)->p4().Eta();
+    }
     smeared_info.met_ =(float) (*met_it)->met();
     smeared_info.sum_et_ =(float) (*met_it)->sumet();
     float min_dphi_jetMET  = 9999;
     int n_good_jets = 0;
     for(auto jet: *jets) {
+        if ( jet->auxdata< char >("smearjet") == false ) continue;
+        if(jet->pt() <= 30E3 || fabs(jet->eta()) >= 2.8)  continue;
         float dphi = (float) fabs(TVector2::Phi_mpi_pi((*met_it)->phi() - jet->phi()));
+        n_good_jets ++;
         if(dphi < min_dphi_jetMET) min_dphi_jetMET = dphi;
         // bool is_signal = objTool.IsSignalJet((*jet), 30e3, 2.8, 0.64);
-        if(jet->pt() > 30E3 && fabs(jet->eta()) < 2.8) n_good_jets ++;
     }
     smeared_info.min_jets_met_ = min_dphi_jetMET;
     smeared_info.n_good_jets_ = n_good_jets;
@@ -769,4 +795,5 @@ void get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
     delete metAux;
     delete met_track;
     delete metAux_track;
+    return true;
 }

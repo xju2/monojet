@@ -10,8 +10,9 @@ ROOT.gROOT.SetBatch()
 if not hasattr(ROOT, "loader"):
     ROOT.gROOT.LoadMacro("/afs/cern.ch/user/x/xju/tool/loader.c") 
 
-seed_cut = ROOT.TCut("weight*(met_sig<0.7 && leading_jet_pt > 250)")
-no_cut = ROOT.TCut("weight*(leading_jet_pt > 250)")
+seed_cut = ROOT.TCut("weight*(met_sig<0.7 && leading_jet_pt > 150 && abs(leading_jet_eta) < 2.4)")
+no_cut = ROOT.TCut("weight*(leading_jet_pt > 150 && abs(leading_jet_eta) < 2.4)")
+smeared_cut = ROOT.TCut("weight*(leading_jet_pt > 150 && abs(leading_jet_eta) < 2.4)")
 
 def plot_smeared_jet_pt( file_name, br_name = "leading_jet_pt", \
                         hist_name = "jet_pt"):
@@ -26,16 +27,18 @@ def plot_smeared_jet_pt( file_name, br_name = "leading_jet_pt", \
     jet_pt_title = "leading jet p_{t}"
     jet_pt_seed.SetXTitle(jet_pt_title)
     jet_pt_all = PyROOTUtils.draw_hist_from_chain(ch_seed, br_name,\
-                                            no_cut, hist_name+"_all", met_xbins)
+                                                  no_cut, hist_name+"_all", met_xbins)
     jet_pt_smeared = PyROOTUtils.draw_hist_from_chain(ch_smeared, br_name,\
-                                            no_cut, hist_name+"_smeared", met_xbins)
-    bin_200 = jet_pt_seed.FindBin(150)
+                                                      smeared_cut, hist_name+"_smeared", met_xbins)
+    bin_200 = jet_pt_seed.FindBin(125)
+    #bin_200 = 1
     nbins = len(met_xbins)-1
     pt_scale = jet_pt_all.Integral(bin_200, nbins)/jet_pt_seed.Integral(bin_200,
                                                                         nbins)
     scale2 = jet_pt_all.Integral(bin_200, nbins)/jet_pt_smeared.Integral(bin_200,
                                                                         nbins)
     print "seed scale: ", pt_scale
+    print "smeared scale: ", scale2
     jet_pt_seed.Scale(pt_scale, 'width')
     jet_pt_smeared.Scale(scale2, 'width')
     jet_pt_all.Scale(1.0, 'width')
@@ -165,6 +168,7 @@ if __name__ == "__main__":
         file_name = sys.argv[1]
     plot_smeared_jet_pt(file_name)
     plot_smeared_data(file_name, "njets", "N_{jets}", "njets", 11, -0.5, 10.5)
+    #plot_smeared_jet_pt(file_name, "met_et", "met_et")
 
     #hist = HistMaker(file_name)
     #hist.process("Dijets_combined.root")

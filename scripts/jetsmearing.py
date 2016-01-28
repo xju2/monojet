@@ -13,11 +13,11 @@ ROOT.gROOT.SetBatch()
 if not hasattr(ROOT, "loader"):
     ROOT.gROOT.LoadMacro("/afs/cern.ch/user/x/xju/tool/loader.c") 
 
-ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libCxxUtils.so")
-ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libAthContainers.so")
-ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc48-opt/libMonoJet.so")
+ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libCxxUtils.so")
+ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libAthContainers.so")
+ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libMonoJet.so")
 
-triggers = [#"HLT_j100",  
+triggers = ["HLT_j60",  
             "HLT_j110",  
             "HLT_j150",  #"HLT_j175",  
             "HLT_j200",
@@ -30,6 +30,7 @@ trigger_plateau = [130, 170, 220, 280, 350, 390, 430]
 lumi_list = [979.768*1E-3, 1441.75*1E-3,  5357.85*1E-3, 10698.3*1E-3,
               19701.4*1E-3, 68386.7*1E-3, 135.87, 191.304, 3316.68] 
 unprescaled_lumi = 3316.68
+
 
 debug = False
 
@@ -96,15 +97,17 @@ class MiniTree:
             return "HLT_j150"
         elif chain.trig_j110 and pt > 130 and pt <= 170:
             return "HLT_j110"
+        elif chain.trig_j60 and pt > 80 and pt <= 130:
+            return "HLT_j60"
         else:
             return None
 
     @staticmethod
     def get_met_sig(chain):
-        #return (chain.MET_et/1E3 - 8)/math.sqrt(chain.MET_sumet/1E3)
-        return (chain.MET_et/1E3)/math.sqrt(chain.MET_sumet/1E3)
+        return (chain.MET_et/1E3 - 8)/math.sqrt(chain.MET_sumet/1E3)
+        #return (chain.MET_et/1E3)/math.sqrt(chain.MET_sumet/1E3)
 
-    def change_file(self, file_name, start_n):
+    def change_file(self, file_name, start_n, nevents_be_processed):
         chain = ROOT.loader(file_name, "physics")
         nentries = chain.GetEntries()
         
@@ -115,6 +118,9 @@ class MiniTree:
         seedtree = ROOT.TTree("seed", "seed")
         met = array('f', [0])
         jetpt = array('f', [0])
+        jeteta = array('f', [0])
+        subjetpt = array('f', [0])
+        subjeteta = array('f', [0])
         njets = array('i', [0])
         dphi = array('f', [0])
         dphiEP = array('f', [0])
@@ -126,6 +132,9 @@ class MiniTree:
         outtree.Branch('met_et', met, 'met_et/F')
         outtree.Branch('njets', njets, 'njets/I')
         outtree.Branch('leading_jet_pt', jetpt, 'leading_jet_pt/F')
+        outtree.Branch('leading_jet_eta', jeteta, 'leading_jet_eta/F')
+        outtree.Branch('sub_leading_jet_pt', subjetpt, 'sub_leading_jet_pt/F')
+        outtree.Branch('sub_leading_jet_eta', subjeteta, 'sub_leading_jet_eta/F')
         outtree.Branch('min_dphi', dphi, 'min_dphi/F')
         outtree.Branch("dphi_ep", dphiEP, 'dphi_ep/F')
         outtree.Branch('rmet_pt', rmet_pt, 'rmet_pt/F')
@@ -137,6 +146,7 @@ class MiniTree:
         seedtree.Branch('met_et', met, 'met_et/F')
         seedtree.Branch('njets', njets, 'njets/I')
         seedtree.Branch('leading_jet_pt', jetpt, 'leading_jet_pt/F')
+        seedtree.Branch('leading_jet_eta', jeteta, 'leading_jet_eta/F')
         seedtree.Branch('min_dphi', dphi, 'min_dphi/F')
         #seedtree.Branch("dphi_ep", dphiEP, 'dphi_ep/F')
         #seedtree.Branch('rmet_pt', rmet_pt, 'rmet_pt/F')
@@ -150,7 +160,7 @@ class MiniTree:
         seedtree.Branch("met_sig", met_sig_br, 'met_sig/F')
         seedtree.Branch("frac_soft", frac_soft_br, 'frac_soft/F')
 
-        for ientry in range(1000):
+        for ientry in range(nevents_be_processed):
             ientry = start_n + ientry
             if chain.LoadTree(ientry) < 0:
                 break
@@ -176,16 +186,19 @@ class MiniTree:
             jet_pt_origin = chain.jet_p4[0].Pt()
             met[0] = chain.MET_et/1E3
             jetpt[0] = jet_pt_origin/1E3
+            jeteta[0] = chain.jet_p4[0].Eta()
             njets[0] = chain.n_good_jet
             dphi[0] = chain.min_dphi_jetMET
             seedtree.Fill()
 
 
-            if met_sig < 0.7 and chain.n_base_el ==0 and chain.n_base_mu ==0\
-               and frac_soft < 0.1:
+            if met_sig < 0.7:
                 for data in chain.pseudoData:
                     met[0] = data.met_/1E3
                     jetpt[0] = data.leading_jet_pt_/1E3
+                    jeteta[0] = data.leading_jet_eta_
+                    subjetpt[0] = data.sub_leading_jet_pt_/1E3
+                    subjeteta[0] = data.sub_leading_jet_eta_
                     njets[0] = data.n_good_jets_
                     dphi[0] = data.min_jets_met_
                     dphiEP[0] = data.dphi_EP_
@@ -196,32 +209,42 @@ class MiniTree:
         seedtree.Write()
         outfile.Close()
 
-def test_minitree(start_n, data_list, ps_file_name):
+def test_minitree(start_n, data_list, ps_file_name, nevents):
     mini = MiniTree()
     mini.load_ps(ps_file_name)
-    mini.change_file(data_list, start_n)
+    mini.change_file(data_list, start_n, nevents)
 
 if __name__ == "__main__":
     file_name = ""
     threads = []
     ps_file_name = "284484_ps.txt"
     data_list = "../testarea/data_smeared.list"
+    nevents_per_thread = 1000
+
     if len(sys.argv) > 2:
         ps_file_name = sys.argv[1]
         data_list = sys.argv[2]
     else:
         print sys.argv[0]," ps_file data_list"
         sys.exit(0)
+
+    if len(sys.argv) > 3:
+        nevents_per_thread = int(sys.argv[3])
     
     print ps_file_name,data_list
     ch = ROOT.loader(data_list, "physics")
     nentries = ch.GetEntries()
+
     if nentries < 1:
         sys.exit(1)
-    total_jobs = nentries/1000+1
+
+    total_jobs = nentries/nevents_per_thread + 1
     print "total entries: ",nentries," jobs: ",total_jobs
     for i_thread in range(total_jobs):
         start_n = i_thread*1000
-        t = threading.Thread(target=test_minitree, args=(start_n, data_list, ps_file_name))
+        t = threading.Thread(target=test_minitree, args=(start_n,
+                                                         data_list,
+                                                         ps_file_name, 
+                                                        nevents_per_thread))
         threads.append(t)
         t.start()

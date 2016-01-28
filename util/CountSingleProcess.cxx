@@ -13,9 +13,10 @@
 #include <typeinfo>
 #include <algorithm>
 
-#include "MonoJet/physics.h"
 #include "MyXAODTools/EventCounter.h"
+#include "MonoJet/physics.h"
 #include "MonoJet/Regions.h"
+#include "MonoJet/SmearedInfo.h"
 
 using namespace std;
 
@@ -161,7 +162,7 @@ int main( int argc, char** argv)
             hist_2d->push_back(dphi_2d);
         }
     }
-    // cout<<"total hists for one variable: "<< hists_map["n_jets"]->size()<<endl;
+    if(debug) cout<<"total hists for one variable: "<< hists_map["n_jets"]->size()<<endl;
 
     _p->fChain->GetEntry(0);
     Regions* region = new Regions(_p);
@@ -179,8 +180,12 @@ int main( int argc, char** argv)
 
     for ( Long64_t ientry = 0; ientry < nentries ; ientry ++ )
     {
-        _p->fChain->LoadTree(ientry );
+        if (_p->fChain->LoadTree(ientry ) < 0) {
+            continue;
+        }
         _p->fChain->GetEntry(ientry );
+        if(debug) cout << "processing " << ientry << endl;
+
         int mc_id = _p->mc_channel_number;
         if (required_mc_id > 0 && mc_id != required_mc_id) continue;
         bool pass_run_id = required_run_id < 0 || required_run_id == _p->RunNumber ||
@@ -189,6 +194,7 @@ int main( int argc, char** argv)
 
         // cout << _p->RunNumber << " " << _p->EventNumber << endl;
         // if(find(exclude_lists->begin(), exclude_lists->end(), mc_id) != exclude_lists->end()) continue;
+        if(debug) cout << "here0 " << endl;  
 
         double weight = 1.0;
         if(!is_data){
@@ -202,9 +208,9 @@ int main( int argc, char** argv)
                 }
             }
         }
-
+        if(debug) cout << "here1 " << endl;  
         region->CorrectMET();
-        for(int j=0; j < total_cuts; j++){
+        for(int j=0; j < total_cuts; j++) {
             int cut_index = met_cuts->at(j);
             float met_cut = cut_index * 1e3;
             float jet_pt_cut = (float) met_cut;

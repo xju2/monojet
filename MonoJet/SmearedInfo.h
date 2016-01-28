@@ -4,6 +4,9 @@
 typedef struct SmearedInfo 
 {
     float leading_jet_pt_;
+    float leading_jet_eta_;
+    float sub_leading_jet_pt_;
+    float sub_leading_jet_eta_;
     float met_;
     float sum_et_;
     float min_jets_met_;
