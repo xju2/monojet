@@ -195,7 +195,7 @@ int main( int argc, char* argv[] )
     else objTool.msg().setLevel(MSG::ERROR);
 
     // Configure the SUSYObjDef instance
-    ST::SettingDataSource data_source = isData ? ST::Data : (isAtlfast ? ST::AtlfastII : ST::FullSim);
+    ST::ISUSYObjDef_xAODTool::DataSource data_source = isData ? ST::ISUSYObjDef_xAODTool::Data : (isAtlfast ? ST::ISUSYObjDef_xAODTool::AtlfastII : ST::ISUSYObjDef_xAODTool::FullSim);
 
     /* config the Pileup reweighting tools */
     string maindir(getenv("ROOTCOREBIN"));
@@ -226,7 +226,7 @@ int main( int argc, char* argv[] )
     TH2F* bJetResponse = NULL;
     const std::string smearJet = "smearjet";
     if (do_smear) {
-        unsigned int test = 2000;
+        unsigned int test = 1000;
 
         m_mySmearingTool = new SUSY::JetMCSmearingTool("MySmearingTool");
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
@@ -373,10 +373,13 @@ int main( int argc, char* argv[] )
             if(! cp_tools->HasPrimaryVertex(*vertice, 1)) continue;
             // Fill vertex info
             int n_track_rec = 0;
+            output.n_pv_ = 0;
             for(const auto& vxp : *vertice){
-                if(n_track_rec++ > 5) break;
+                output.n_pv_ ++;
+                if(n_track_rec++ > 5) continue;
                 track_br->Fill(*vxp);
             }
+
             // Fill Track info
             const xAOD::TrackParticleContainer* tracks = 0;
             CHECK( event.retrieve(tracks, "InDetTrackParticles") );
@@ -733,6 +736,7 @@ int main( int argc, char* argv[] )
     Info( APP_NAME, "Successfully finished analysis; Exitting..." );
     return 1;
 }
+
 bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
         xAOD::MuonContainer* muons, xAOD::ElectronContainer* electrons,
         SmearedInfo& smeared_info)
@@ -740,6 +744,7 @@ bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
     sort(jets->begin(), jets->end(), descend_on_pt);
     smeared_info.leading_jet_pt_ = (float)jets->at(0)->p4().Pt();
     smeared_info.leading_jet_eta_ = (float)jets->at(0)->p4().Eta();
+    smeared_info.leading_jet_phi_ = (float)jets->at(0)->p4().Phi();
     if(smeared_info.leading_jet_pt_ < 100E3 || 
             fabs(smeared_info.leading_jet_eta_) >= 2.4 ||
             dec_tightBad(*(jets->at(0))) != 1 ||
@@ -760,19 +765,39 @@ bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
                 );
     xAOD::MissingETContainer::const_iterator met_it = met->find("Final");
 
-    if (jets->size() > 1) {
-        smeared_info.sub_leading_jet_pt_ = (float)jets->at(1)->p4().Pt();
-        smeared_info.sub_leading_jet_eta_ = (float)jets->at(1)->p4().Eta();
-    }
     smeared_info.met_ =(float) (*met_it)->met();
     smeared_info.sum_et_ =(float) (*met_it)->sumet();
     float min_dphi_jetMET  = 9999;
     int n_good_jets = 0;
+    smeared_info.HT_ = 0.0;
+    smeared_info.sub_leading_jet_pt_ = -999.0;
+    smeared_info.sub_leading_jet_eta_ = -999.0;
+    smeared_info.sub_leading_jet_phi_ = -999.0;
+    smeared_info.l3rd_jet_pt_ = -999.0;
+    smeared_info.l3rd_jet_eta_ = -999.0;
+    smeared_info.l3rd_jet_phi_ = -999.0;
+    smeared_info.l4th_jet_pt_ = -999.0;
+    smeared_info.l4th_jet_eta_ = -999.0;
+    smeared_info.l4th_jet_phi_ = -999.0;
     for(auto jet: *jets) {
         if ( jet->auxdata< char >("smearjet") == false ) continue;
         if(jet->pt() <= 30E3 || fabs(jet->eta()) >= 2.8)  continue;
+        smeared_info.HT_ += jet->pt();
         float dphi = (float) fabs(TVector2::Phi_mpi_pi((*met_it)->phi() - jet->phi()));
         n_good_jets ++;
+        if (n_good_jets == 2) {
+            smeared_info.sub_leading_jet_pt_ = (float)jet->p4().Pt();
+            smeared_info.sub_leading_jet_eta_ = (float)jet->p4().Eta();
+            smeared_info.sub_leading_jet_phi_ = (float)jet->p4().Phi();
+        } else if(n_good_jets == 3){
+            smeared_info.l3rd_jet_pt_ = (float)jet->p4().Pt();
+            smeared_info.l3rd_jet_eta_ = (float)jet->p4().Eta();
+            smeared_info.l3rd_jet_phi_ = (float)jet->p4().Phi();
+        } else if (n_good_jets == 4){
+            smeared_info.l4th_jet_pt_ = (float)jet->p4().Pt();
+            smeared_info.l4th_jet_eta_ = (float)jet->p4().Eta();
+            smeared_info.l4th_jet_phi_ = (float)jet->p4().Phi();
+        } else {}
         if(dphi < min_dphi_jetMET) min_dphi_jetMET = dphi;
         // bool is_signal = objTool.IsSignalJet((*jet), 30e3, 2.8, 0.64);
     }

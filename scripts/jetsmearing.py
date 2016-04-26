@@ -81,12 +81,16 @@ class MiniTree:
         return result
     
     @staticmethod
-    def find_right_trigger(chain):
-        pt = chain.jet_p4[0].Pt()/1E3
+    def find_right_trigger(chain, pt):
+        #pt = chain.jet_p4[0].Pt()/1E3
         if chain.trig_j400 and pt > 430:
             return "HLT_j400"
         elif chain.trig_j360 and pt > 390 and pt <= 430:
             return "HLT_j360"
+        #if chain.trig_j400:
+        #    return "HLT_j400"
+        #elif chain.trig_j360:
+        #    return "HLT_j360"
         elif chain.trig_j320 and pt > 350 and pt <= 390:
             return "HLT_j320"
         elif chain.trig_j260 and pt > 280 and pt <= 350:
@@ -100,7 +104,11 @@ class MiniTree:
         elif chain.trig_j60 and pt > 80 and pt <= 130:
             return "HLT_j60"
         else:
-            return None
+            pass
+        #for trigger in reversed(triggers):
+        #    if getattr(chain, trigger.replace("HLT","trig")):
+        #        return trigger
+        return None
 
     @staticmethod
     def get_met_sig(chain):
@@ -117,10 +125,14 @@ class MiniTree:
         outtree = ROOT.TTree("smeared", "smeared")
         seedtree = ROOT.TTree("seed", "seed")
         met = array('f', [0])
+        sumet = array('f', [0])
         jetpt = array('f', [0])
         jeteta = array('f', [0])
+        jetphi = array('f', [0])
         subjetpt = array('f', [0])
         subjeteta = array('f', [0])
+        subjetphi = array('f', [0])
+
         njets = array('i', [0])
         dphi = array('f', [0])
         dphiEP = array('f', [0])
@@ -129,7 +141,20 @@ class MiniTree:
         event_number = array('i', [0])
         lb = array('i', [0])
         weight = array('f', [0])
+
+        ht = array('f', [0])
+        l3rd_jet_pt = array('f', [0])
+        l3rd_jet_eta = array('f', [0])
+        l3rd_jet_phi = array('f', [0])
+        l4th_jet_pt = array('f', [0])
+        l4th_jet_eta = array('f', [0])
+        l4th_jet_phi = array('f', [0])
+        n_vertices = array('i', [0])
+        mass_eff = array('f', [0])
+
+
         outtree.Branch('met_et', met, 'met_et/F')
+        outtree.Branch('sumet', sumet, 'sumet/F')
         outtree.Branch('njets', njets, 'njets/I')
         outtree.Branch('leading_jet_pt', jetpt, 'leading_jet_pt/F')
         outtree.Branch('leading_jet_eta', jeteta, 'leading_jet_eta/F')
@@ -142,6 +167,19 @@ class MiniTree:
         outtree.Branch('event', event_number, 'event/I')
         outtree.Branch('lb', lb, 'lb/I')
         outtree.Branch('weight', weight, 'weight/F')
+
+        outtree.Branch('Ht', ht, 'Ht/F')
+        outtree.Branch('leading_jet_phi', jetphi, 'leading_jet_phi/F')
+        outtree.Branch('sub_leading_jet_phi', subjetphi, 'sub_leading_jet_phi/F')
+        outtree.Branch('l3rd_jet_pt', l3rd_jet_pt, 'l3rd_jet_pt/F')
+        outtree.Branch('l3rd_jet_eta', l3rd_jet_eta, 'l3rd_jet_eta/F')
+        outtree.Branch('l3rd_jet_phi', l3rd_jet_phi, 'l3rd_jet_phi/F')
+        outtree.Branch('l4th_jet_pt', l4th_jet_pt, 'l4th_jet_pt/F')
+        outtree.Branch('l4th_jet_eta', l4th_jet_eta, 'l4th_jet_eta/F')
+        outtree.Branch('l4th_jet_phi', l4th_jet_phi, 'l4th_jet_phi/F')
+        outtree.Branch('n_vertices', n_vertices, 'n_vertices/I')
+        outtree.Branch('mass_eff', mass_eff, 'mass_eff/F')
+
     
         seedtree.Branch('met_et', met, 'met_et/F')
         seedtree.Branch('njets', njets, 'njets/I')
@@ -165,11 +203,14 @@ class MiniTree:
             if chain.LoadTree(ientry) < 0:
                 break
             chain.GetEntry(ientry)
+            jet_pt_origin = chain.jet_p4[0].Pt()
             #check trigger
-            trigger = self.find_right_trigger(chain)
+            trigger = self.find_right_trigger(chain, jet_pt_origin/1E3)
             if trigger:
                 weight[0] = self.find_weight(trigger, chain.lumiblock)
             else:
+                #print jet_pt_origin/1E3," does not pass trigger",chain.RunNumber,chain.EventNumber
+                #weight[0] = 0.0
                 continue
             #apply lepton veto
             if chain.n_base_el > 0 or chain.n_base_mu > 0:
@@ -183,19 +224,23 @@ class MiniTree:
             run_number[0] = chain.RunNumber
             event_number[0] = chain.EventNumber
             lb[0] = chain.lumiblock
-            jet_pt_origin = chain.jet_p4[0].Pt()
             met[0] = chain.MET_et/1E3
             jetpt[0] = jet_pt_origin/1E3
             jeteta[0] = chain.jet_p4[0].Eta()
             njets[0] = chain.n_good_jet
             dphi[0] = chain.min_dphi_jetMET
             seedtree.Fill()
-
+            
+            n_vertices[0] = chain.n_vertices
 
             if met_sig < 0.7:
                 for data in chain.pseudoData:
-                    met[0] = data.met_/1E3
                     jetpt[0] = data.leading_jet_pt_/1E3
+                    met[0] = data.met_/1E3
+                    sumet[0] = data.sum_et_/1E3
+                    ##make the events fewer
+                    #if met[0] < 100: 
+                    #    continue
                     jeteta[0] = data.leading_jet_eta_
                     subjetpt[0] = data.sub_leading_jet_pt_/1E3
                     subjeteta[0] = data.sub_leading_jet_eta_
@@ -203,6 +248,17 @@ class MiniTree:
                     dphi[0] = data.min_jets_met_
                     dphiEP[0] = data.dphi_EP_
                     rmet_pt[0] = data.met_/data.leading_jet_pt_
+                    
+                    ht[0] = data.HT_/1E3
+                    jetphi[0] = data.leading_jet_phi_
+                    subjetphi[0] = data.sub_leading_jet_phi_
+                    l3rd_jet_pt[0] = data.l3rd_jet_pt_/1E3
+                    l3rd_jet_eta[0] = data.l3rd_jet_eta_
+                    l3rd_jet_phi[0] = data.l3rd_jet_phi_
+                    l4th_jet_pt[0] = data.l4th_jet_pt_/1E3
+                    l4th_jet_eta[0] = data.l4th_jet_eta_
+                    l4th_jet_phi[0] = data.l4th_jet_phi_
+                    mass_eff[0] = jetpt[0]+subjetpt[0]+l3rd_jet_pt[0]+l4th_jet_pt[0]+met[0]
                     outtree.Fill()
         outfile.cd()
         outtree.Write()
@@ -239,6 +295,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     total_jobs = nentries/nevents_per_thread + 1
+    #total_jobs = 10 
     print "total entries: ",nentries," jobs: ",total_jobs
     for i_thread in range(total_jobs):
         start_n = i_thread*1000

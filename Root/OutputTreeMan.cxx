@@ -142,6 +142,7 @@ void OutputTreeMan::AddBranches2Tree(TTree& MyTree)
     MyTree.Branch("bcid", &bcid_, "bcid/i");
     MyTree.Branch("lumiblock", &lumiBlock_, "lumiblock/i");
     MyTree.Branch("n_good_trk", &n_good_trk, "n_good_trk/I");
+    MyTree.Branch("n_vertices", &n_pv_, "n_vertices/i");
 
     // Trigger Info
     for(auto& kv : trigger_map_){

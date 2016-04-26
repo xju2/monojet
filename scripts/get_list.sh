@@ -1,7 +1,7 @@
 #!/bin/bash
 #samples="Wenu ttbar Zee Diboson Wtaunu Znunu Wmunu Zmumu Ztautau Dijets DMV"
-samples="Wenu ttbar Zee Diboson Wtaunu Znunu Wmunu Zmumu Ztautau Dijets"
-tag_name="mc15b_v1"
+samples="Wenu ttbar Zee Diboson Wtaunu Znunu Wmunu Zmumu Ztautau Dijets DMV DMP"
+tag_name="mc15b_v2"
 base_dir="${GROUPEOSDIR}/monojet/minitrees/${tag_name}"
 for sample in ${samples}
 do

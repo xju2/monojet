@@ -53,7 +53,7 @@ public:
     float pu_weight_;
     float corrected_mu_;
     float data_weight_;
-    int n_pv_;
+    uint32_t n_pv_;
     float actualIPC_; // actual interaction per crossing for the current BCID -- for in-time pile-up
     float averageIPC_;// average interaction per corssing for all BCIDs -- for out-of-time pile-up
     uint32_t bcid_;

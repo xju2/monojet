@@ -8,7 +8,7 @@ from optparse import OptionParser
 def get_run_number(input_list):
     with open(input_list,'r') as f:
         for line in f:
-            return line.split('/')[5].split('.')[2][2:]
+            return line.split('/')[-2].split('.')[2][2:]
 usage="usage: "+sys.argv[0]+" input.list outDir"
 parser = OptionParser(usage, version="0.1")
 parser.add_option("--filesPerJob", default=1, dest="files_per_job", 

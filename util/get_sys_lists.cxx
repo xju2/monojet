@@ -14,10 +14,10 @@ int main( int argc, char* argv[]){
     // Configure the SUSYObjDef instance
     bool isData = false;
     bool isAtlfast = false;
-    ST::SettingDataSource data_source = isData ? ST::Data : (isAtlfast ? ST::AtlfastII : ST::FullSim);
+    ST::ISUSYObjDef_xAODTool::DataSource data_source = isData ? ST::ISUSYObjDef_xAODTool::Data : (isAtlfast ? ST::ISUSYObjDef_xAODTool::AtlfastII : ST::ISUSYObjDef_xAODTool::FullSim);
     objTool.setProperty("DataSource", data_source);
     // use the first set of JES NPs
-    objTool.setProperty("JESNuisanceParameterSet", 1); 
+    objTool.setProperty("JESNuisanceParameterSet", 1);
 
     if( objTool.initialize() != StatusCode::SUCCESS ){
         exit(-1);
@@ -34,8 +34,8 @@ int main( int argc, char* argv[]){
         // only list Jet, Electron, Muon, MET
         if (MonoJet::Helper::IsSysNeeded(sysInfo))
         {
-            cout << sys.name() << " " << sysInfo.affectsKinematics 
-                << " " << sysInfo.affectsWeights 
+            cout << sys.name() << " " << sysInfo.affectsKinematics
+                << " " << sysInfo.affectsWeights
                 << " " << sysInfo.affectsType << endl;
         }
     }

@@ -11,12 +11,15 @@ fi
 echo "---Start the Job---"
 echo ${ROOTCOREBIN}
 echo ${ROOTCOREDIR}
+
 if [ "x${ROOTCOREBIN}" == "x" ]; then
     shift $#
     source ${MonoJetCodeDir}/rcSetup.sh 
 else
-. /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc484_x86_64_slc6/slc6/x86_64-slc6-gcc48-opt/setup.sh /afs/cern.ch/sw/lcg/contrib
+. /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/root/6.04.12-x86_64-slc6-gcc49-opt/bin/thisroot.sh
+. /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc493_x86_64_slc6/slc6/gcc49/setup.sh /afs/cern.ch/sw/lcg/contrib
 fi
+
 which root
 which gcc
 

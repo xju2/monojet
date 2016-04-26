@@ -50,7 +50,7 @@ void SysHandle::GetYields(const string& norm_dir, const string& sys_dir)
     ST::SUSYObjDef_xAOD objTool("SUSYObjDef_xAOD");
     std::cout << " ABOUT TO INITIALIZE SUSYTOOLS " << std::endl;
     objTool.msg().setLevel(MSG::ERROR);
-    int data_source = ST::FullSim;
+    int data_source = ST::ISUSYObjDef_xAODTool::FullSim;
     objTool.setProperty("DataSource", data_source);
 
     if( objTool.initialize() != StatusCode::SUCCESS ){

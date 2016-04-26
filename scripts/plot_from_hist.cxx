@@ -12,17 +12,9 @@
 #include "/afs/cern.ch/user/x/xju/tool/loader.c"
 
 using namespace std;
-// const float weight = 1037.23;
 const float weight = 3210;
-// const float weight = 173.7;
-//const float weight = 523.3 + 85.;
 const string base_dir = "combined/";
-//const string base_dir = "combined_523_met250_noJetC/";
-// const string base_dir = "combined_173_dphi04_met250/";
-// const string base_dir = "combined_dphi04_met100/";
-// const string base_dir = "combined_dphi04_met250/";
-// const string base_dir = "combined_dphi05_met100/";
-// const string base_dir = "combined_dphi04_met250_lpt100/";
+
 const float min_dphi_jet_met = 0.4;
 const float dphi_et_pt_cut = 1.6;
 int first_bin = 1;
@@ -67,7 +59,6 @@ public:
         // weight
         Option_t* option = "";
         float add_weight = 1.0;
-        // float add_weight = 1.;
         if(TString(hist_name).Contains("met") || 
            TString(hist_name).Contains("ljetPt")) option = "width";
         h_znunu->Scale(weight*add_weight, option);
@@ -76,7 +67,8 @@ public:
         h_top->Scale(weight*add_weight, option);
         h_vv->Scale(weight*add_weight, option);
         // h_dijets->Scale(weight*7.848206e+00);
-        h_dijets->Scale(weight*add_weight*2.087575e-04*1.073483e+00*6.313839e-01, option);
+        // h_dijets->Scale(weight*add_weight*2.087575e-04*1.073483e+00*6.313839e-01, option);
+        h_dijets->Scale(weight*add_weight, option);
         if(h_signal) h_signal->Scale(weight, option);
         h_data->Sumw2();
         h_data->Scale(1., option);
@@ -667,8 +659,8 @@ void go_plot(int cut_tag, const char* region)
     hist_mgr_1d->do_plot(Form("met_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("ljetPt_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("dphi_%s_%d", region, cut_tag));
-    // hist_mgr_1d->do_plot(Form("dphiEP_%s_%d", region, cut_tag));
     hist_mgr_1d->do_plot(Form("njets_%s_%d", region, cut_tag));
+    // hist_mgr_1d->do_plot(Form("dphiEP_%s_%d", region, cut_tag));
     // hist_mgr_1d->do_plot(Form("met_SR_%d", cut_tag));
     // hist_mgr_1d->do_plot(Form("met_ZEE_%d", cut_tag));
     // hist_mgr_1d->do_plot(Form("met_ZMM_%d", cut_tag));

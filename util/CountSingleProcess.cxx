@@ -121,6 +121,10 @@ int main( int argc, char** argv)
     int total_types = (int) region_types->size();
 
     double met_xbins[] = {50, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 450, 500, 600, 800, 1000};
+    /* change the binning to the following:
+     * 
+    double met_xbins[] = {50, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 450, 500, 600, 700, 1000};
+     */
     int met_nbins = 16;
     TH1F* MET_template = new TH1F("MET_template","E_{T}^{miss};E_{T}^{miss} [GeV];Events", met_nbins, met_xbins);
     TH1F* njet_template = new TH1F("njet_template","njet;N_{jets};Events",11,-0.5,10.5);

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 // ROOT include(s):
 #include <TFile.h>
@@ -13,6 +14,7 @@
 #include <TChain.h>
 #include <TH1F.h>
 #include <TLorentzVector.h>
+#include <TVector2.h>
 
 // Infrastructure include(s):
 #ifdef ROOTCORE
@@ -35,10 +37,13 @@
 #include "xAODTruth/TruthParticleContainer.h"
 #include "xAODTruth/TruthEventContainer.h"
 #include "xAODTruth/TruthEvent.h"
+#include "xAODTruth/TruthVertex.h"
 #include "xAODCore/ShallowCopy.h"
 #include "xAODMissingET/MissingETContainer.h"
 #include "xAODMissingET/MissingETAuxContainer.h"
 #include "xAODBTaggingEfficiency/BTaggingEfficiencyTool.h"
+#include "xAODBTaggingEfficiency/BTaggingSelectionTool.h"
+
 #include "xAODBase/IParticleHelpers.h"
 #include "xAODTracking/VertexContainer.h"
 #include "xAODTracking/TrackParticleContainer.h"
@@ -57,6 +62,24 @@
 #include "MyXAODTools/EventCounter.h"
 
 using namespace std;
+
+bool descend_on_pt(xAOD::IParticle* p1, xAOD::IParticle* p2){
+    return p1->pt() > p2->pt();
+}
+
+int GAFinalHadronFlavourLabel (const xAOD::Jet* jet) {
+    const std::string labelB = "GhostBHadronsFinal";
+    const std::string labelC = "GhostCHadronsFinal";
+    const std::string labelTau = "GhostTausFinal";
+    std::vector<const xAOD::IParticle*> ghostB;
+    if (jet->getAssociatedObjects<xAOD::IParticle>(labelB, ghostB) && ghostB.size() > 0) return 5;
+    std::vector<const xAOD::IParticle*> ghostC;
+    if (jet->getAssociatedObjects<xAOD::IParticle>(labelC, ghostC) && ghostC.size() > 0) return 4;
+    std::vector<const xAOD::IParticle*> ghostTau;
+    if (jet->getAssociatedObjects<xAOD::IParticle>(labelTau, ghostTau) && ghostTau.size() > 0) return 15;
+    return 0;
+}
+
 int main( int argc, char* argv[] ) {
     
     if(argc > 1 && string(argv[1]) == "help"){
@@ -95,6 +118,7 @@ int main( int argc, char* argv[] ) {
 		}
 	}
     Info(APP_NAME, "Will process: %d", (int)entries);
+    
 
 	int RunNumber;
 	int EventNumber;
@@ -109,10 +133,9 @@ int main( int argc, char* argv[] ) {
 	std::vector<double> jet_phi;
 	std::vector<double> jet_E;
 	std::vector<double> jet_dphi_MET;
+	std::vector<double> jet_mv2c20;
+	std::vector<int> jet_flavor;
 
-	int jet_index_1st;
-	int jet_index_2nd;
-    int jet_index_3rd;
 
 	double MET_etx;
 	double MET_ety;
@@ -120,7 +143,6 @@ int main( int argc, char* argv[] ) {
     double MET_phi;
 
     int type;
-
 
 	TFile *fOutputFile = new TFile( "reduced_ntuple.root", "recreate" );
 	TTree MyTree( "physics", "physics" );
@@ -134,10 +156,8 @@ int main( int argc, char* argv[] ) {
 	MyTree.Branch("jet_phi", &jet_phi);
 	MyTree.Branch("jet_E", &jet_E);
 	MyTree.Branch("jet_dphi_MET", &jet_dphi_MET);
-   
-	MyTree.Branch("jet_index_1st", &jet_index_1st, "jet_index_1st/I");
-	MyTree.Branch("jet_index_2nd", &jet_index_2nd, "jet_index_2nd/I");
-	MyTree.Branch("jet_index_3rd", &jet_index_3rd, "jet_index_3rd/I");
+	MyTree.Branch("jet_MV2c20", &jet_mv2c20);
+	MyTree.Branch("jet_flavor", &jet_flavor);
 
 	MyTree.Branch("MET_etx", &MET_etx, "MET_etx/D");
 	MyTree.Branch("MET_ety", &MET_ety, "MET_ety/D");
@@ -162,6 +182,41 @@ int main( int argc, char* argv[] ) {
 	MyTree.Branch("MCWeightDown", &mc_weight_down, "MCWeightDown/D");
 	MyTree.Branch("MCWeights", &mc_weights);
 
+    // save truth information
+    double truth_h_mass;
+    double truth_z1_mass;
+    double truth_z2_mass;
+    double truth_h_pt;
+    double truth_z1_pt;
+    double truth_z2_pt;
+
+    double truth_j1_pt;
+    double truth_j2_pt;
+    double truth_j3_pt;
+    double truth_j4_pt;
+    double truth_j1_phi;
+    double truth_j2_phi;
+    double truth_j3_phi;
+    double truth_j4_phi;
+
+    MyTree.Branch("truth_h_mass", & truth_h_mass, "truth_h_mass/D");
+    MyTree.Branch("truth_z1_mass", & truth_z1_mass, "truth_z1_mass/D");
+    MyTree.Branch("truth_z2_mass", & truth_z2_mass, "truth_z2_mass/D");
+
+    MyTree.Branch("truth_h_pt", & truth_h_pt, "truth_h_pt/D");
+    MyTree.Branch("truth_z1_pt", & truth_z1_pt, "truth_z1_pt/D");
+    MyTree.Branch("truth_z2_pt", & truth_z2_pt, "truth_z2_pt/D");
+
+    MyTree.Branch("truth_j1_pt", & truth_j1_pt, "truth_j1_pt/D");
+    MyTree.Branch("truth_j2_pt", & truth_j2_pt, "truth_j2_pt/D");
+    MyTree.Branch("truth_j3_pt", & truth_j3_pt, "truth_j3_pt/D");
+    MyTree.Branch("truth_j4_pt", & truth_j4_pt, "truth_j4_pt/D");
+
+    MyTree.Branch("truth_j1_phi", & truth_j1_phi, "truth_j1_phi/D");
+    MyTree.Branch("truth_j2_phi", & truth_j2_phi, "truth_j2_phi/D");
+    MyTree.Branch("truth_j3_phi", & truth_j3_phi, "truth_j3_phi/D");
+    MyTree.Branch("truth_j4_phi", & truth_j4_phi, "truth_j4_phi/D");
+
 	for( Long64_t entry = 0; entry < entries; ++entry ) {
 
 		jet_pt.clear();
@@ -169,6 +224,9 @@ int main( int argc, char* argv[] ) {
 		jet_phi.clear();
 		jet_E.clear();
         jet_dphi_MET.clear();
+        jet_mv2c20.clear();
+        jet_flavor.clear();
+
         mc_weights->clear();
 
 		// Tell the object which entry to look at:
@@ -207,60 +265,129 @@ int main( int argc, char* argv[] ) {
         MET_phi = (*met_it)->phi();
 
 		// Get the Jets from the event:
-		const xAOD::JetContainer* jets = 0;
-		CHECK( event.retrieve( jets, "AntiKt4TruthJets" ) );
+		const xAOD::JetContainer* jets_origin = 0;
+        CHECK( event.retrieve( jets_origin, "AntiKt4TruthJets" ) );
+        std::pair<xAOD::JetContainer*, xAOD::ShallowAuxContainer*> jet_shallowcopy = xAOD::shallowCopyContainer(*jets_origin);
+        xAOD::JetContainer* jets = jet_shallowcopy.first;
+        sort(jets->begin(), jets->end(), descend_on_pt);
 
 		xAOD::JetContainer::const_iterator jet_itr = jets->begin();
 		xAOD::JetContainer::const_iterator jet_end = jets->end();
-
-		int index_jet = 0;
-		xAOD::JetContainer::const_iterator jet_lead    = jets->end();
-		xAOD::JetContainer::const_iterator jet_sublead = jets->end();
-		xAOD::JetContainer::const_iterator jet_third   = jets->end();
-		double pt_lead = 0;
-		double pt_sublead = 0;
-        double pt_third = 0;
-		jet_index_1st = -1;
-		jet_index_2nd = -1;
-		jet_index_3rd = -1;
+    
+        string m_taggerName = "MV2c20";
 		for( ; jet_itr != jet_end; ++jet_itr ) {
-            if(  (*jet_itr)->pt() <= 10e3 && fabs( (*jet_itr)->eta()) >= 2.8 ) continue;
-
-            if ( (*jet_itr)->pt() > pt_lead ){
-                pt_third = pt_sublead;
-                jet_third = jet_sublead;
-                pt_sublead = pt_lead;
-                jet_sublead = jet_lead;
-                pt_lead = (*jet_itr)->pt();
-                jet_lead = jet_itr;
-                jet_index_3rd = jet_index_2nd;
-                jet_index_2nd = jet_index_1st;
-                jet_index_1st = index_jet;
-            } else if ( (*jet_itr)->pt() > pt_sublead ){
-                pt_third = pt_sublead;
-                jet_third = jet_sublead;
-                pt_sublead = (*jet_itr)->pt();
-                jet_sublead = jet_itr;
-                jet_index_3rd = jet_index_2nd;
-                jet_index_2nd = index_jet;
-            } else if ( (*jet_itr)->pt() > pt_third ){
-                pt_third = (*jet_itr)->pt();
-                jet_third = jet_itr;
-                jet_index_3rd = index_jet;
-            }
-
-            double dphi = fabs( (*met_it)->phi() - (*jet_itr)->phi() );
-            if ( dphi>TMath::Pi() ) dphi = 2*TMath::Pi() - dphi;
-
+            double dphi = fabs(TVector2::Phi_mpi_pi((*met_it)->phi() - (*jet_itr)->phi()));
             jet_pt.push_back( (*jet_itr)->pt() );
             jet_eta.push_back( (*jet_itr)->eta() );
             jet_phi.push_back( (*jet_itr)->phi() );
             jet_E.push_back( (*jet_itr)->e() );
             jet_dphi_MET.push_back( dphi );
-
-            index_jet ++;
+            const xAOD::BTagging* btag = (*jet_itr)->btagging();
+            double weight_mv2 (-10.0);
+            if((!btag) || (!btag->MVx_discriminant(m_taggerName, weight_mv2))) {
+               ; 
+            }
+            jet_mv2c20.push_back(weight_mv2);
+            jet_flavor.push_back(GAFinalHadronFlavourLabel((*jet_itr)));
         }
-        
+
+        // Get truth particles
+       const xAOD::TruthParticleContainer* particles(0);
+       CHECK(event.retrieve(particles, "TruthParticles"));
+       auto par_itr = particles->begin();
+       auto par_end = particles->end();
+       truth_z1_mass = -1;
+       truth_z2_mass = -1;
+       truth_z1_pt = -1;
+       truth_z2_pt = -1;
+
+       truth_j1_pt = -1;
+       truth_j2_pt = -1;
+       truth_j3_pt = -1;
+       truth_j4_pt = -1;
+
+       for(; par_itr != par_end; par_itr++){
+            const xAOD::TruthParticle* p = (*par_itr);
+            int pdgId = p->pdgId();
+            if(pdgId == 25) {
+                truth_h_mass = p->m();
+                truth_h_pt = sqrt(p->px()*p->px()+p->py()*p->py());
+                if(p->hasDecayVtx()) { // find decay vertex of Higgs
+                    const xAOD::TruthVertex* hzz_vtx = p->decayVtx();
+                    int h_daugthers = hzz_vtx->nOutgoingParticles();
+                    if(h_daugthers != 2) {
+                        /***
+                        cerr << "Higgs decays to " << h_daugthers << " daughters!" << endl;
+                        const xAOD::TruthParticle* tmp = hzz_vtx->outgoingParticle(0);
+                        cerr << "\t pdgID: " << tmp->pdgId() << endl; 
+                        cerr << "\t mass: " << tmp->m() << endl;
+                        **/
+                        continue;
+                    }
+                    for(int i_h_daughter = 0; i_h_daughter < h_daugthers; i_h_daughter++){
+                        const xAOD::TruthParticle* z = hzz_vtx->outgoingParticle(i_h_daughter);
+                        bool is_leading_z = true;
+                        double z_pt = sqrt(z->px()*z->px()+z->py()*z->py());
+                        if(z->pdgId() != 23) continue;
+                        if(truth_z1_mass < 0) {
+                            truth_z1_mass = z->m();
+                            truth_z1_pt = z_pt;
+                        } else {
+                            is_leading_z = false;
+                            truth_z2_mass = z->m();
+                            truth_z2_pt = z_pt;
+                        }
+                        const xAOD::TruthVertex* zqq_vtx = z->decayVtx();
+                        int z_daughters = zqq_vtx->nOutgoingParticles();
+                        if(z_daughters != 2) {
+                            cerr << "Z decays to " << z_daughters << " daughters!" << endl;
+                            continue;
+                        }
+                        for(int i_z_daughter = 0; i_z_daughter < z_daughters; i_z_daughter++){
+                            const xAOD::TruthParticle* quark = zqq_vtx->outgoingParticle(i_z_daughter);
+                            TVector2 quark_xy(quark->px(), quark->py());
+                            double quark_pt = quark_xy.Mod();
+                            double quark_phi = TVector2::Phi_mpi_pi(quark_xy.Phi());
+                            if(is_leading_z){
+                                if (truth_j1_pt < 0) {
+                                    truth_j1_pt = quark_pt;
+                                    truth_j1_phi = quark_phi;
+                                }else{ 
+                                    truth_j2_pt = quark_pt;
+                                    truth_j2_phi = quark_phi;
+                                }
+                            }else{
+                                if (truth_j3_pt < 0) {
+                                    truth_j3_pt = quark_pt;
+                                    truth_j3_phi = quark_phi;
+                                } else {
+                                    truth_j4_pt = quark_pt;
+                                    truth_j4_phi = quark_phi;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+       }
+       if( fabs(truth_z1_mass-ZMASS) > fabs(truth_z2_mass-ZMASS)){
+          swap(truth_z1_mass, truth_z2_mass);
+          swap(truth_j1_pt, truth_j3_pt);
+          swap(truth_j1_phi, truth_j3_phi);
+
+          swap(truth_j2_pt, truth_j4_pt);
+          swap(truth_j2_phi, truth_j4_phi);
+       }
+       if(truth_j1_pt < truth_j2_pt){ 
+           swap(truth_j1_pt, truth_j2_pt);
+           swap(truth_j1_phi, truth_j2_phi);
+       }
+       if(truth_j3_pt < truth_j4_pt){  
+           swap(truth_j3_pt, truth_j4_pt);
+           swap(truth_j3_phi, truth_j4_phi);
+       }
+
        ////get electrons
        const xAOD::TruthParticleContainer* electrons(0);
        CHECK( event.retrieve(electrons,"TruthElectrons") );
