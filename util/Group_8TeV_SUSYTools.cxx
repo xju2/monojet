@@ -195,7 +195,8 @@ int main( int argc, char* argv[] )
     else objTool.msg().setLevel(MSG::ERROR);
 
     // Configure the SUSYObjDef instance
-    ST::ISUSYObjDef_xAODTool::DataSource data_source = isData ? ST::ISUSYObjDef_xAODTool::Data : (isAtlfast ? ST::ISUSYObjDef_xAODTool::AtlfastII : ST::ISUSYObjDef_xAODTool::FullSim);
+    ST::ISUSYObjDef_xAODTool::DataSource data_source = isData ? ST::ISUSYObjDef_xAODTool::Data :
+        (isAtlfast ? ST::ISUSYObjDef_xAODTool::AtlfastII : ST::ISUSYObjDef_xAODTool::FullSim);
 
     /* config the Pileup reweighting tools */
     string maindir(getenv("ROOTCOREBIN"));
@@ -231,31 +232,22 @@ int main( int argc, char* argv[] )
         m_mySmearingTool = new SUSY::JetMCSmearingTool("MySmearingTool");
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
         m_mySmearingTool->initialize();
-        
-        bool do_p2411 = false;
-        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2411.root");
-        if(!do_p2411){
-            input_light_jet = string(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_WEJES_p1886.root");
-        }
+
+        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_)P77_EJES_p2419SUSY11_MarchHADD.root");
         TFile* lightJetFile = TFile::Open(input_light_jet.c_str(), "read");
-        if(do_p2411) lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2411");
-        else lightJetResponse = (TH2F*)lightJetFile->Get("responseWEJES_p1886");
+        lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2419SUSY11");
         lightJetResponse->SetDirectory(0);
         lightJetFile->Close();
 
-        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2411.root");
-        if(!do_p2411){
-            input_bjet = string(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_WEJES_p1886.root");
-        }
+        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2419SUSY11_MarchHADD.root");
         TFile* bJetFile = TFile::Open(input_bjet.c_str(), "read");
-        if(do_p2411) bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2411");
-        else bJetResponse = (TH2F*)bJetFile->Get("responseWEJES_p1886");
+        bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2419SUSY11");
         bJetResponse->SetDirectory(0);
         bJetFile->Close();
 
         m_mySmearingTool->SetResponseMaps(lightJetResponse, bJetResponse);
     }
-    
+
 
     TFile *fOutputFile = new TFile( "reduced_ntup.root", "recreate" );
     vector<ST::SystInfo> systInfoList;
