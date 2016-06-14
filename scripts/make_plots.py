@@ -74,7 +74,7 @@ def plot_smeared_data( file_name, br_name, title, hist_name, nbins, low, hi ):
     base_name = os.path.basename(file_name)
     tag = "data_susy11_jrf_p1886_v4.list"
     canvas.SaveAs(base_name.replace(tag, hist_name)+"_log.pdf")
-    
+
     outfile = ROOT.TFile.Open(base_name.replace(tag,"hist"), 'update')
     jet_pt_all.Write()
     jet_pt_smeared.Write()
@@ -98,7 +98,7 @@ class HistMaker:
     def make_hist(self, br_name, hist_name, nbins, low, hi):
         return ROOT.draw_hist_from_chain(self.chain, br_name,\
                                          self.cut, hist_name, nbins, low, hi)
-    
+
     def process(self, out_name):
         canvas = ROOT.TCanvas("canvas", "canvas", 600, 600)
         fout = ROOT.TFile.Open(out_name, "recreate")

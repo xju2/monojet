@@ -14,7 +14,10 @@ echo ${ROOTCOREDIR}
 
 if [ "x${ROOTCOREBIN}" == "x" ]; then
     shift $#
-    source ${MonoJetCodeDir}/rcSetup.sh 
+    curr_dir=$PWD
+    cd ${MonoJetCodeDir}
+    source rcSetup.sh
+    cd $curr_dir
 else
 . /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/root/6.04.12-x86_64-slc6-gcc49-opt/bin/thisroot.sh
 . /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc493_x86_64_slc6/slc6/gcc49/setup.sh /afs/cern.ch/sw/lcg/contrib
@@ -24,16 +27,17 @@ which root
 which gcc
 
 ps_file_name=${run_number}_ps.txt
-ps_dir="/afs/cern.ch/user/x/xju/work/monoJet/jetSmearing/ps_weight_per_lb/"
+ps_dir="/afs/cern.ch/user/x/xju/work/monoJet/jetSmearing/ps_per_lb/"
 cp ${ps_dir}${ps_file_name} .
 jetsmearing.py $ps_file_name $input_file "$neventsPerThread"
 
 hadd ${out_file_name} jj*root
 
-if [ ! -d ${basedir} ];then
-    mkdir -vp ${basedir}
-fi
+#if [ ! -d ${basedir} ];then
+#    mkdir -vp ${basedir}
+#fi
 echo "save outputs to ${basedir}"
 
-cp ${out_file_name} ${basedir}/${out_file_name}
+#cp ${out_file_name} ${basedir}/${out_file_name}
+xrdcp ${out_file_name} root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju//monojet/smearing/smearing_tool_v17/${basedir}/${out_file_name}
 echo "---End of Job---"

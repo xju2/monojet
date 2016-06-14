@@ -7,17 +7,17 @@ import os
 import sys
 import threading
 import math
-from array import array 
+from array import array
 
 ROOT.gROOT.SetBatch()
 if not hasattr(ROOT, "loader"):
-    ROOT.gROOT.LoadMacro("/afs/cern.ch/user/x/xju/tool/loader.c") 
+    ROOT.gROOT.LoadMacro("/afs/cern.ch/user/x/xju/tool/loader.c")
 
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libCxxUtils.so")
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libAthContainers.so")
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libMonoJet.so")
 
-triggers = ["HLT_j60",  
+triggers = ["HLT_j60",
             "HLT_j110",  
             "HLT_j150",  #"HLT_j175",  
             "HLT_j200",
@@ -79,7 +79,7 @@ class MiniTree:
                 print trigger," ",lb_in," weight: ",result
         #if result > 1: result /= (55/1.5)
         return result
-    
+
     @staticmethod
     def find_right_trigger(chain, pt):
         #pt = chain.jet_p4[0].Pt()/1E3
@@ -118,7 +118,7 @@ class MiniTree:
     def change_file(self, file_name, start_n, nevents_be_processed):
         chain = ROOT.loader(file_name, "physics")
         nentries = chain.GetEntries()
-        
+
         out_name = "jj_"+str(start_n)+".root"
         outfile = ROOT.TFile.Open(out_name, "recreate")
         #outtree = chain.CloneTree(0)
@@ -180,7 +180,6 @@ class MiniTree:
         outtree.Branch('n_vertices', n_vertices, 'n_vertices/I')
         outtree.Branch('mass_eff', mass_eff, 'mass_eff/F')
 
-    
         seedtree.Branch('met_et', met, 'met_et/F')
         seedtree.Branch('njets', njets, 'njets/I')
         seedtree.Branch('leading_jet_pt', jetpt, 'leading_jet_pt/F')
@@ -230,16 +229,16 @@ class MiniTree:
             njets[0] = chain.n_good_jet
             dphi[0] = chain.min_dphi_jetMET
             seedtree.Fill()
-            
+
             n_vertices[0] = chain.n_vertices
 
-            if met_sig < 0.7:
+            if met_sig < 0.5 + 0.1*chain.n_jet_btagged:
                 for data in chain.pseudoData:
                     jetpt[0] = data.leading_jet_pt_/1E3
                     met[0] = data.met_/1E3
                     sumet[0] = data.sum_et_/1E3
                     ##make the events fewer
-                    #if met[0] < 100: 
+                    #if met[0] < 100:
                     #    continue
                     jeteta[0] = data.leading_jet_eta_
                     subjetpt[0] = data.sub_leading_jet_pt_/1E3
@@ -248,7 +247,7 @@ class MiniTree:
                     dphi[0] = data.min_jets_met_
                     dphiEP[0] = data.dphi_EP_
                     rmet_pt[0] = data.met_/data.leading_jet_pt_
-                    
+
                     ht[0] = data.HT_/1E3
                     jetphi[0] = data.leading_jet_phi_
                     subjetphi[0] = data.sub_leading_jet_phi_

@@ -233,7 +233,7 @@ int main( int argc, char* argv[] )
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
         m_mySmearingTool->initialize();
 
-        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_)P77_EJES_p2419SUSY11_MarchHADD.root");
+        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2419SUSY11_MarchHADD.root");
         TFile* lightJetFile = TFile::Open(input_light_jet.c_str(), "read");
         lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2419SUSY11");
         lightJetResponse->SetDirectory(0);
