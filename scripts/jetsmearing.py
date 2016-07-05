@@ -15,6 +15,8 @@ if not hasattr(ROOT, "loader"):
 
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libCxxUtils.so")
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libAthContainers.so")
+ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libRoiDescriptor.so")
+ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libTrigSteeringEvent.so")
 ROOT.gROOT.LoadMacro(os.getenv("ROOTCOREBIN")+"/lib/x86_64-slc6-gcc49-opt/libMonoJet.so")
 
 triggers = ["HLT_j60",
@@ -203,14 +205,18 @@ class MiniTree:
                 break
             chain.GetEntry(ientry)
             jet_pt_origin = chain.jet_p4[0].Pt()
+
             #check trigger
-            trigger = self.find_right_trigger(chain, jet_pt_origin/1E3)
-            if trigger:
-                weight[0] = self.find_weight(trigger, chain.lumiblock)
-            else:
+            #trigger = self.find_right_trigger(chain, jet_pt_origin/1E3)
+            #if trigger:
+            #    weight[0] = self.find_weight(trigger, chain.lumiblock)
+            #else:
                 #print jet_pt_origin/1E3," does not pass trigger",chain.RunNumber,chain.EventNumber
                 #weight[0] = 0.0
-                continue
+            #    continue
+
+            # get trigger weight from the branch
+            weight[0] = chain.triggerWeight
             #apply lepton veto
             if chain.n_base_el > 0 or chain.n_base_mu > 0:
                 continue
@@ -264,29 +270,26 @@ class MiniTree:
         seedtree.Write()
         outfile.Close()
 
-def test_minitree(start_n, data_list, ps_file_name, nevents):
+def test_minitree(start_n, data_list, nevents):
     mini = MiniTree()
-    mini.load_ps(ps_file_name)
     mini.change_file(data_list, start_n, nevents)
 
 if __name__ == "__main__":
     file_name = ""
     threads = []
-    ps_file_name = "284484_ps.txt"
     data_list = "../testarea/data_smeared.list"
     nevents_per_thread = 1000
 
-    if len(sys.argv) > 2:
-        ps_file_name = sys.argv[1]
-        data_list = sys.argv[2]
+    if len(sys.argv) > 1:
+        data_list = sys.argv[1]
     else:
-        print sys.argv[0]," ps_file data_list"
+        print sys.argv[0]," data_list n_events_per_thread"
         sys.exit(0)
 
-    if len(sys.argv) > 3:
-        nevents_per_thread = int(sys.argv[3])
-    
-    print ps_file_name,data_list
+    if len(sys.argv) > 2:
+        nevents_per_thread = int(sys.argv[2])
+
+    print data_list, nevents_per_thread
     ch = ROOT.loader(data_list, "physics")
     nentries = ch.GetEntries()
 
@@ -296,11 +299,12 @@ if __name__ == "__main__":
     total_jobs = nentries/nevents_per_thread + 1
     #total_jobs = 10 
     print "total entries: ",nentries," jobs: ",total_jobs
+
+    #sys.exit(0) 
     for i_thread in range(total_jobs):
         start_n = i_thread*1000
         t = threading.Thread(target=test_minitree, args=(start_n,
                                                          data_list,
-                                                         ps_file_name, 
                                                         nevents_per_thread))
         threads.append(t)
         t.start()

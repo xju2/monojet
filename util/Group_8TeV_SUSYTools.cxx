@@ -46,6 +46,7 @@
 
 #include "JetSmearing/JetMCSmearingTool.h"
 #include "JetSmearing/SmearData.h"
+#include "JetSmearing/PreScaleTool.h"
 
 // Other includes
 // #include "PATInterfaces/SystematicList.h"
@@ -83,6 +84,8 @@ bool descend_on_pt(xAOD::IParticle* p1, xAOD::IParticle* p2){
     return p1->pt() > p2->pt();
 }
 
+const std::string smearJet = "smearjet";
+
 bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
         xAOD::MuonContainer* muons, xAOD::ElectronContainer* electrons,
         SmearedInfo& smeared_info);
@@ -116,10 +119,13 @@ int main( int argc, char* argv[] )
         uint64_t n_events_process = 0;
         double sum_of_evt_weights = 0;
         double sum_of_evt_weight_sqd = 0;
+        /**
+         * not work for 20.7
         CHECK(CPToolsHelper::GetProcessEventsInfo(name_file.Data(), 
                     n_events_process,
                     sum_of_evt_weights,
                     sum_of_evt_weight_sqd));
+         ***/
         total_evts_pro += n_events_process;
         sum_of_evt_w += sum_of_evt_weights;
         sum_of_evt_w_sq += sum_of_evt_weight_sqd;
@@ -131,6 +137,12 @@ int main( int argc, char* argv[] )
     Info(APP_NAME, "Sum of evt weights: %f", sum_of_evt_w);
     Info(APP_NAME, "Sum of evt weights sq: %f", sum_of_evt_w_sq);
     **/
+    const string single_jet_triggers [16] = {
+        "HLT_j400", "HLT_j380", "HLT_j360", "HLT_j320",
+        "HLT_j300", "HLT_260", "HLT_200", "HLT_j175",
+        "HLT_j150", "HLT_j110", "HLT_j100", "HLT_j85",
+        "HLT_j60", "HLT_j55", "HLT_j25", "HLT_j15"
+    };
 
     // Create a TEvent object:
     xAOD::TEvent event( xAOD::TEvent::kClassAccess );
@@ -225,23 +237,24 @@ int main( int argc, char* argv[] )
     SUSY::JetMCSmearingTool* m_mySmearingTool = NULL;
     TH2F* lightJetResponse = NULL;
     TH2F* bJetResponse = NULL;
-    const std::string smearJet = "smearjet";
+    PreScaleTool* m_prescaleTool = NULL;
     if (do_smear) {
+        m_prescaleTool = new PreScaleTool();
         unsigned int test = 1000;
 
         m_mySmearingTool = new SUSY::JetMCSmearingTool("MySmearingTool");
         m_mySmearingTool->setProperty("NumberOfSmearedEvents",test);
         m_mySmearingTool->initialize();
 
-        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2015_bveto_OP77_EJES_p2419SUSY11_MarchHADD.root");
+        std::string input_light_jet(maindir+"/data/JetSmearing/MC15/R_map2016_bveto_OP77_EJES_p2613.root");
         TFile* lightJetFile = TFile::Open(input_light_jet.c_str(), "read");
-        lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2419SUSY11");
+        lightJetResponse = (TH2F*)lightJetFile->Get("responseEJES_p2613");
         lightJetResponse->SetDirectory(0);
         lightJetFile->Close();
 
-        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2015_btag_OP77_EJES_p2419SUSY11_MarchHADD.root");
+        std::string input_bjet(maindir+"/data/JetSmearing/MC15/R_map2016_btag_OP77_EJES_p2613.root");
         TFile* bJetFile = TFile::Open(input_bjet.c_str(), "read");
-        bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2419SUSY11");
+        bJetResponse = (TH2F*)bJetFile->Get("responseEJES_p2613");
         bJetResponse->SetDirectory(0);
         bJetFile->Close();
 
@@ -311,8 +324,11 @@ int main( int argc, char* argv[] )
         jet_br->AttachBranchToTree(MyTree);
         auto* smeared_data = new vector<SmearedInfo>() ;
         MyTree.Branch("pseudoData", smeared_data);
+        double trigger_weight = -1.0;
+        MyTree.Branch("triggerWeight", &trigger_weight, "triggerWeight/D");
 
-        for( Long64_t entry = 0; entry < entries; ++entry ) {
+        for( Long64_t entry = 0; entry < entries; ++entry ) 
+        {
             output.ClearBranch();
             track_br->ClearBranch();
             photon_br->ClearBranch();
@@ -385,18 +401,21 @@ int main( int argc, char* argv[] )
             }
 
             /*get physics objects*/
-            xAOD::JetContainer* jets_copy;
-            xAOD::ShallowAuxContainer* jets_copyaux;
+            // Electrons
+            xAOD::ElectronContainer* electrons_copy = NULL;
+            xAOD::ShallowAuxContainer* electrons_copyaux = NULL;
+            CHECK( objTool.GetElectrons(electrons_copy, electrons_copyaux, true) );
+            
+            // Muons
+            xAOD::MuonContainer* muons_copy = NULL;
+            xAOD::ShallowAuxContainer* muons_copyaux = NULL;
+            CHECK( objTool.GetMuons(muons_copy, muons_copyaux, true) );
+            
+            // Jets
+            xAOD::JetContainer* jets_copy = NULL;
+            xAOD::ShallowAuxContainer* jets_copyaux = NULL;
             CHECK( objTool.GetJets(jets_copy,jets_copyaux, true) );
 
-            xAOD::MuonContainer* muons_copy;
-            xAOD::ShallowAuxContainer* muons_copyaux;
-            CHECK( objTool.GetMuons(muons_copy, muons_copyaux, true) );
-
-
-            xAOD::ElectronContainer* electrons_copy;
-            xAOD::ShallowAuxContainer* electrons_copyaux;
-            CHECK( objTool.GetElectrons(electrons_copy, electrons_copyaux, true) );
 
             ///////////////////////
             // do overlap removal before object selection
@@ -410,7 +429,6 @@ int main( int argc, char* argv[] )
             bool passJetCleaning = true;
             output.n_base_jet = 0;
             for(const auto& jet : *jets_copy){
-                objTool.IsBadJet(*jet, -999.);
                 objTool.IsBJet(*jet) ;
                 if ( jet->pt() > 20e3 )
                 {
@@ -650,7 +668,25 @@ int main( int argc, char* argv[] )
             {
                 store.clear();
                 continue;
+            } else {
+                // obtain prescale factor for the event
+                vector<pair<string, bool> > triggerPass;
+                for(const auto sjt: single_jet_triggers) {
+                    triggerPass.push_back(make_pair(sjt, objTool.IsTrigPassed(sjt)));
+                }
+                const xAOD::JetContainer * hlt_jet = 0;
+                TString mc_name="HLT_xAOD__JetContainer_a4tcemsubjesFS";
+                if( ! event.retrieve( hlt_jet, mc_name.Data()).isSuccess() ) {
+                    Error("execute()", Form("failed to retrieve %s", mc_name.Data()));
+                }
+                //use the prescale tool to retrieve the prescale weight for the event
+                if(hlt_jet->size()>0){
+                    trigger_weight = m_prescaleTool->getTriggerPrescale(triggerPass,*(hlt_jet->at(0)), ei->runNumber());
+                } else {
+                    trigger_weight = 0.0;
+                }
             }
+
             if(do_smear){
                 std::vector<std::unique_ptr<SmearData > > smrMc;
                 m_mySmearingTool->DoSmearing(smrMc,*jets_copy);
@@ -658,7 +694,8 @@ int main( int argc, char* argv[] )
                     xAOD::JetContainer* theJetContainer =  SmearedEvent->jetContainer;
                     SmearedInfo smeared;
                     if (get_smeared_info(objTool, theJetContainer, 
-                            muons_copy, electrons_copy, smeared)){
+                                muons_copy, electrons_copy, smeared)
+                       ){
                         smeared_data->push_back(smeared);
                     }
                 }
@@ -729,7 +766,8 @@ int main( int argc, char* argv[] )
     return 1;
 }
 
-bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
+bool get_smeared_info(
+        ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
         xAOD::MuonContainer* muons, xAOD::ElectronContainer* electrons,
         SmearedInfo& smeared_info)
 {
@@ -740,7 +778,7 @@ bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
     if(smeared_info.leading_jet_pt_ < 100E3 || 
             fabs(smeared_info.leading_jet_eta_) >= 2.4 ||
             dec_tightBad(*(jets->at(0))) != 1 ||
-            jets->at(0)->auxdata< char >("smearjet") == false
+            jets->at(0)->auxdata< char >(smearJet) == false
     ) return false;
     auto* met = new xAOD::MissingETContainer;
     auto* metAux = new xAOD::MissingETAuxContainer;
@@ -759,6 +797,8 @@ bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
 
     smeared_info.met_ =(float) (*met_it)->met();
     smeared_info.sum_et_ =(float) (*met_it)->sumet();
+    // since xe80 used for the analysis, cut on 80 GeV to reduce size of pseudo-data.
+    if(smeared_info.sum_et_ < 80E3) return false;
     float min_dphi_jetMET  = 9999;
     int n_good_jets = 0;
     smeared_info.HT_ = 0.0;
@@ -772,7 +812,7 @@ bool get_smeared_info(ST::SUSYObjDef_xAOD& objTool, xAOD::JetContainer* jets,
     smeared_info.l4th_jet_eta_ = -999.0;
     smeared_info.l4th_jet_phi_ = -999.0;
     for(auto jet: *jets) {
-        if ( jet->auxdata< char >("smearjet") == false ) continue;
+        if ( jet->auxdata< char >(smearJet) == false ) continue;
         if(jet->pt() <= 30E3 || fabs(jet->eta()) >= 2.8)  continue;
         smeared_info.HT_ += jet->pt();
         float dphi = (float) fabs(TVector2::Phi_mpi_pi((*met_it)->phi() - jet->phi()));

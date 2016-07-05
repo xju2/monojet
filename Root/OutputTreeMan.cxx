@@ -18,23 +18,28 @@ OutputTreeMan::OutputTreeMan(bool with_sys)
     trigger_map_ = {
         {"HLT_xe70", false},
         {"HLT_xe80", false},
+        {"HLT_j80_xe80", false},
         {"HLT_xe100", false},
         {"HLT_j200_xe80", false},
         {"HLT_j150_xe90", false},
         {"HLT_j100_xe80_dphi10", false},
+        // electron
         {"HLT_e17_lhloose_L1EM15", false},
         {"HLT_e24_lhmedium_iloose_L1EM18VH", false},
         {"HLT_e24_lhmedium_iloose_L1EM20VH", false},
         {"HLT_e24_lhmedium_L1EM18VH", false},
+        {"HLT_e24_lhmedium_L1EM20VH", false}, // new in 2016
         {"HLT_e24_lhtight_iloose_L1EM20VH", false},
         {"HLT_e24_lhtight_iloose", false},
         {"HLT_e60_lhmedium", false},
         {"HLT_e120_lhloose", false},
+        // Muon
         {"HLT_mu20_iloose_L1MU15", false},
         {"HLT_mu26_imedium", false},
         {"HLT_mu40", false},
         {"HLT_mu50", false},
         {"HLT_g140_loose", false},
+        // pre-scaled jet
         {"HLT_j60", false},
         {"HLT_j100", false},
         {"HLT_j110", false},
