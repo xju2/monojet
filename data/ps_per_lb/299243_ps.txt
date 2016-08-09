@@ -1,0 +1,55 @@
+[HLT_j420]
+LB   1, ps     -600.0
+LB   6, ps        1.0
+LB  66, ps        1.0
+LB 121, ps     -600.0
+[HLT_j175]
+LB   1, ps    -3000.0
+LB   6, ps      127.1
+LB  66, ps      127.1
+LB 121, ps    -3000.0
+[HLT_j60]
+LB   1, ps       -1.0
+LB   6, ps     1187.5
+LB  66, ps     1187.5
+LB 121, ps       -1.0
+[HLT_j110]
+LB   1, ps   -25003.0
+LB   6, ps      976.8
+LB  66, ps      976.8
+LB 121, ps   -25003.0
+[HLT_j260]
+LB   1, ps     -100.0
+LB   6, ps       21.6
+LB  66, ps       21.6
+LB 121, ps     -100.0
+[HLT_j150]
+LB   1, ps       -1.0
+LB   6, ps      775.0
+LB  66, ps      775.0
+LB 121, ps       -1.0
+[HLT_j360]
+LB   1, ps     -600.0
+LB   6, ps        1.0
+LB  66, ps        1.0
+LB 121, ps     -600.0
+[HLT_j320]
+LB   1, ps       -1.0
+LB   6, ps        5.0
+LB  66, ps        5.0
+LB 121, ps       -1.0
+[HLT_j15]
+LB   1, ps  -986895.0
+LB   6, ps   243171.5
+LB  66, ps   243171.5
+LB 121, ps  -986895.0
+[HLT_j400]
+LB   1, ps     -600.0
+LB   6, ps        1.0
+LB  66, ps        1.0
+LB 121, ps     -600.0
+[HLT_j25]
+LB   1, ps  -986895.0
+LB   6, ps   104357.0
+LB  66, ps   104357.0
+LB 121, ps  -986895.0

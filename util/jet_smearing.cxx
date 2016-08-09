@@ -8,7 +8,9 @@
 #include <vector>
 
 #include "MonoJet/SmearedInfo.h"
+#include "MonoJet/PrescaleFactorTool.h"
 #include "CPAnalysisExamples/errorcheck.h"
+#include "MyXAODTools/Helper.h"
 
 using namespace std;
 
@@ -25,10 +27,8 @@ int main(int argc, char* argv[])
     cout << "file name: " << file_name << endl;
     cout << "out name: " << out_name << endl;
 
-    TFile* fin = TFile::Open(file_name.c_str());
-    if(!fin) exit(1);
-    TTree* tin = (TTree*)fin->Get("physics");
-    if(!tin) exit(2);
+    TChain* tin = MyXAODTools::Helper::loader(file_name.c_str(), "physics");
+    if(!tin) exit(1);
 
     vector<TLorentzVector>* jet_p4 = nullptr;
     double triggerWeight;
@@ -41,6 +41,9 @@ int main(int argc, char* argv[])
     float min_dphi_jetMET;
     UInt_t n_vertices;
     int n_jet_btagged;
+    int RunNumber;
+    int EventNumber;
+    UInt_t lumiblock;
     tin->SetBranchAddress("jet_p4", &jet_p4);
     tin->SetBranchAddress("triggerWeight", &triggerWeight);
     tin->SetBranchAddress("n_base_mu", &n_base_mu);
@@ -54,6 +57,9 @@ int main(int argc, char* argv[])
     tin->SetBranchAddress("n_jet_btagged", &n_jet_btagged);
     vector<SmearedInfo>* pseudoData = nullptr;
     tin->SetBranchAddress("pseudoData", &pseudoData);
+    tin->SetBranchAddress("RunNumber", &RunNumber);
+    tin->SetBranchAddress("EventNumber", &EventNumber);
+    tin->SetBranchAddress("lumiblock", &lumiblock);
 
     tin->SetBranchStatus("*",0);
     tin->SetBranchStatus("jet_p4", 1);
@@ -67,13 +73,44 @@ int main(int argc, char* argv[])
     tin->SetBranchStatus("min_dphi_jetMET", 1);
     tin->SetBranchStatus("n_vertices", 1);
     tin->SetBranchStatus("n_jet_btagged", 1);
-    tin->SetBranchStatus("pseudoData*", 1);
+    tin->SetBranchStatus("pseudoData*", 1); // Important!
+    tin->SetBranchStatus("RunNumber", 1);
+    tin->SetBranchStatus("EventNumber", 1);
+    tin->SetBranchStatus("lumiblock", 1);
+
+    // book trigger information
+    bool trig_j400;
+    bool trig_j360;
+    bool trig_j320;
+    bool trig_j260;
+    bool trig_j200;
+    bool trig_j150;
+    bool trig_j110;
+    bool trig_j60;
+    tin->SetBranchAddress("trig_j400", &trig_j400);
+    tin->SetBranchAddress("trig_j360", &trig_j360);
+    tin->SetBranchAddress("trig_j320", &trig_j320);
+    tin->SetBranchAddress("trig_j260", &trig_j260);
+    tin->SetBranchAddress("trig_j200", &trig_j200);
+    tin->SetBranchAddress("trig_j150", &trig_j150);
+    tin->SetBranchAddress("trig_j110", &trig_j110);
+    tin->SetBranchAddress("trig_j60", &trig_j60);
+    tin->SetBranchStatus("trig_j400", 1);
+    tin->SetBranchStatus("trig_j360", 1);
+    tin->SetBranchStatus("trig_j320", 1);
+    tin->SetBranchStatus("trig_j260", 1);
+    tin->SetBranchStatus("trig_j200", 1);
+    tin->SetBranchStatus("trig_j150", 1);
+    tin->SetBranchStatus("trig_j110", 1);
+    tin->SetBranchStatus("trig_j60",  1);
 
     // book branches for output tree
     auto outfile = TFile::Open(out_name.c_str(), "recreate");
     auto smeared_tree = new TTree("smeared", "smeared");
     auto seed_tree = new TTree("seed", "seed");
 
+    int _run;
+    int _lbn;
     float _met;
     float _sumet;
     float _jet_pt;
@@ -87,6 +124,7 @@ int main(int argc, char* argv[])
     float _dphi_ep;
     float _rmet_pt;
     float _weight;
+    float _weightOrg;
     float _ht;
     float _l3rd_jet_pt;
     float _l3rd_jet_eta;
@@ -99,6 +137,8 @@ int main(int argc, char* argv[])
     float _met_sig;
     float _frac_soft;
 
+    smeared_tree->Branch("run", &_run, "run/I");
+    smeared_tree->Branch("lb", &_lbn, "lb/I");
     smeared_tree->Branch("met_et", &_met, "met_et/F");
     smeared_tree->Branch("sumet", &_sumet, "sumet/F");
     smeared_tree->Branch("leading_jet_pt", &_jet_pt, "leading_jet_pt/F");
@@ -112,6 +152,7 @@ int main(int argc, char* argv[])
     smeared_tree->Branch("dphi_ep", &_dphi_ep, "dphi_ep/F");
     smeared_tree->Branch("rmet_pt", &_rmet_pt, "rmet_pt/F");
     smeared_tree->Branch("weight", &_weight, "weight/F");
+    smeared_tree->Branch("weightOrg", &_weightOrg, "weightOrg/F");
     smeared_tree->Branch("Ht", &_ht, "Ht/F");
     smeared_tree->Branch("l3rd_jet_pt",  &_l3rd_jet_pt, "l3rd_jet_pt/F");
     smeared_tree->Branch("l3rd_jet_eta", &_l3rd_jet_eta, "l3rd_jet_eta/F");
@@ -122,6 +163,8 @@ int main(int argc, char* argv[])
     smeared_tree->Branch("n_vertices", &_n_vertices, "n_vertices/I");
     smeared_tree->Branch("mass_eff", &_mass_eff, "mass_eff/F");
 
+    seed_tree->Branch("run", &_run, "run/I");
+    seed_tree->Branch("lb", &_lbn, "lb/I");
     seed_tree->Branch("met_et", &_met, "met_et/F");
     seed_tree->Branch("njets", &_njets, "njets/I");
     seed_tree->Branch("leading_jet_pt", &_jet_pt, "leading_jet_pt/F");
@@ -130,15 +173,18 @@ int main(int argc, char* argv[])
     //seed_tree->Branch("dphi_ep", dphiEP, "dphi_ep/F");
     //seed_tree->Branch("rmet_pt", rmet_pt, "rmet_pt/F");
     seed_tree->Branch("weight", &_weight, "weight/F");
+    seed_tree->Branch("weightOrg", &_weightOrg, "weightOrg/F");
     seed_tree->Branch("met_sig", &_met_sig, "met_sig/F");
     seed_tree->Branch("frac_soft", &_frac_soft, "frac_soft/F");
 
     // book some plots for comparison
+
     float met_xbins[17] = {
         50, 100, 125, 150, 175,
         200, 225, 250, 275, 300,
         350, 400, 450, 500, 600, 800, 1000
     };
+
     int met_nbins = 16;
     auto h_jet_pt_temp = new TH1F("jet_pt_temp","jet_pt_temp", met_nbins, met_xbins);
     auto h_jet_pt_smeared = (TH1F*) h_jet_pt_temp->Clone("leading_jet_pt_smeared");
@@ -162,19 +208,40 @@ int main(int argc, char* argv[])
     Long64_t nentries = (Long64_t) tin->GetEntries();
     Info(APP_NAME, "total entries %d", (int) nentries);
     int seed_events = 0;
+    auto pft = new PrescaleFactorTool();
     // for( Long64_t ientry =0; ientry < 10; ientry ++ )
     for( Long64_t ientry =0; ientry < nentries; ientry ++ )
     {
         tin->GetEntry(ientry);
         if(n_base_el > 0 || n_base_mu > 0) continue;
-        _weight = triggerWeight;
-        if(_weight == 0) continue;
-        
+        _weightOrg = triggerWeight;
+        map<string, bool> trigger_input;
+        trigger_input["HLT_j400"] = trig_j400;
+        trigger_input["HLT_j360"] = trig_j360;
+        trigger_input["HLT_j320"] = trig_j320;
+        trigger_input["HLT_j260"] = trig_j260;
+        trigger_input["HLT_j200"] = trig_j200;
+        trigger_input["HLT_j150"] = trig_j150;
+        trigger_input["HLT_j110"] = trig_j110;
+        trigger_input["HLT_j60"]  = trig_j60;
+        _run = RunNumber;
+        _lbn = lumiblock;
+        _jet_pt = (float) jet_p4->at(0).Pt()/1E3;
+
+        _weight = pft->getWeight(_run,
+                PrescaleFactorTool::getTrigger(trigger_input, _jet_pt),
+                _lbn);
+        if(_weight == 0){
+            // pft->test();
+            // cout <<_run<<" " <<EventNumber << " " << _lbn <<" "<< _jet_pt << " has zero weight" << endl;
+            // break;
+            continue;
+        }
+
         // before apply seed cuts
         _met = (float) MET_et/1E3;
         _sumet = (float) MET_sumet/1E3;
         _met_sig = (_met - 8) / sqrt(_sumet);
-        _jet_pt = (float) jet_p4->at(0).Pt();
         _njets = n_good_jet;
         _dphi = min_dphi_jetMET;
 
@@ -184,7 +251,7 @@ int main(int argc, char* argv[])
         h_dphi_all  ->Fill(_dphi, _weight);
 
 
-        if (_met_sig < 0.5 + 0.1 * n_jet_btagged) {
+        if (_met_sig >= 0.5 + 0.1 * n_jet_btagged) {
             continue;
         }
         seed_events ++;
@@ -236,6 +303,7 @@ int main(int argc, char* argv[])
             smeared_tree->Fill();
         }
     }
+    delete pft;
     Info(APP_NAME, "seed events: %d", seed_events);
 
     outfile->cd();

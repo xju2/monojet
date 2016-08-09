@@ -9,8 +9,8 @@ if [ "$#" -gt "4" ]; then
 fi
 
 echo "---Start the Job---"
-echo ${ROOTCOREBIN}
-echo ${ROOTCOREDIR}
+echo "ROOTCOREBIN ${ROOTCOREBIN}"
+echo "ROOTCOREDIR ${ROOTCOREDIR}"
 
 if [ "x${ROOTCOREBIN}" == "x" ]; then
     shift $#
@@ -20,7 +20,7 @@ if [ "x${ROOTCOREBIN}" == "x" ]; then
     cd $curr_dir
 else
     . /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/root/6.04.16-x86_64-slc6-gcc49-opt/bin/thisroot.sh
-    . /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc493_x86_64_slc6/slc6/gcc49/setup.sh /afs/cern.ch/sw/lcg/contrib
+    . /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/Gcc/gcc493_x86_64_slc6/slc6/gcc49/setup.sh
 fi
 
 which root
@@ -39,5 +39,5 @@ jet_smearing $input_file  ${out_file_name}
 echo "save outputs to ${basedir}"
 
 #cp ${out_file_name} ${basedir}/${out_file_name}
-xrdcp ${out_file_name} root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju//monojet/smearing/smearing_tool_v20/${basedir}/${out_file_name}
+xrdcp -f ${out_file_name} root://eosatlas//eos/atlas/unpledged/group-wisc/users/xju//monojet/smearing/smearing_tool_v20/${basedir}/${out_file_name}
 echo "---End of Job---"
